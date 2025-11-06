@@ -3,6 +3,16 @@
   import { goto } from '$app/navigation';
   import { user, isAuthenticated, logout } from '$lib/stores/auth';
   import { get } from 'svelte/store';
+  import { redirect } from '@sveltejs/kit';
+
+export const load = async ({ session }) => {
+  if (session.user.role === 'nutriologo') {
+    throw redirect(302, '/nutriologo');
+  } else {
+    throw redirect(302, '/paciente');
+  }
+};
+
 
   // Sample patients data (replace with API call later)
   type Patient = { id: number; name: string; age: number; lastVisit: string };

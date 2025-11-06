@@ -7,10 +7,13 @@
 
   let { children } = $props();
 
+  // Rutas donde se ocultan header y footer
   const hideRoutes = ['/registro', '/registro/crear', '/login'];
 
+  // Mostrar header/footer solo si la ruta no está en hideRoutes
   const showHeaderFooter = derived(page, ($page) => {
-    return !hideRoutes.some((path) => $page.url.pathname.startsWith(path));
+    const path = $page.url.pathname;
+    return !hideRoutes.some((hide) => path === hide || path.startsWith(hide + '/'));
   });
 </script>
 
@@ -18,7 +21,7 @@
   <Header />
 {/if}
 
-<main>
+<main class={$showHeaderFooter ? 'pt-20' : ''}>
   {@render children()}
 </main>
 

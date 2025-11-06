@@ -3,6 +3,16 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import Chart from 'chart.js/auto';
+  import { redirect } from '@sveltejs/kit';
+
+export const load = async ({ session }) => {
+  if (session.user.role === 'nutriologo') {
+    throw redirect(302, '/nutriologo');
+  } else {
+    throw redirect(302, '/paciente');
+  }
+};
+
 
   let patientId: number;
   let patient: any = null;

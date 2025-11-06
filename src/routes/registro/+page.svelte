@@ -8,15 +8,23 @@
   let error = '';
   let loading = false;
 
-  function validateEmail(e: string) {
-    return /\S+@\S+\.\S+/.test(e);
+  // Referencia al input para enfocar al montar
+  let emailInput: HTMLInputElement | null = null;
+
+  onMount(() => {
+    emailInput?.focus();
+  });
+
+  function validateEmail(e: string): boolean {
+    return /^\S+@\S+\.\S+$/.test(e);
   }
 
   async function handleSubmit(ev: Event) {
     ev.preventDefault();
     error = '';
 
-    if (!email) {
+    // Validaciones básicas
+    if (!email.trim()) {
       error = 'Por favor ingresa tu correo.';
       return;
     }
@@ -24,20 +32,22 @@
       error = 'Formato de correo inválido.';
       return;
     }
-    if (!password) {
+    if (!password.trim()) {
       error = 'Por favor ingresa tu contraseña.';
       return;
     }
 
-    // Validar contra usuarios registrados en localStorage (demo)
-    let users = [];
+    // Obtener usuarios desde localStorage
+    let users: Array<any> = [];
     try {
       users = JSON.parse(localStorage.getItem('nutriapp_users') || '[]');
-    } catch (e) {
-      users = [];
+    } catch {
+      error = 'Error al leer usuarios registrados.';
+      return;
     }
 
-    const found = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+    // Buscar usuario
+    const found = users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
     if (!found) {
       error = 'Usuario no registrado. Por favor regístrate primero.';
       return;
@@ -47,26 +57,27 @@
       return;
     }
 
+    // Simular carga
     loading = true;
     await new Promise((r) => setTimeout(r, 400));
     loading = false;
 
+    // Obtener rol y nombre completo
     const role = getRoleFromEmail(email);
-    const fullName = `${found.firstName}${found.middleName ? ' ' + found.middleName : ''} ${found.lastNameP} ${found.lastNameM}`.trim();
-    doLogin({ email, role, name: fullName });
-    if (role === 'nutriologo') {
-      goto('/nutriologo');
-    } else if (role === 'paciente') {
-      goto('/paciente');
-    } else {
-      goto('/');
-    }
-  }
+    const fullName = [
+      found.firstName,
+      found.middleName,
+      found.lastNameP,
+      found.lastNameM
+    ].filter(Boolean).join(' ').trim();
 
-  // Enfocar el primer campo al montar
-  let emailInput: HTMLInputElement | null = null;
-  onMount(() => emailInput?.focus());
+    // Guardar sesión y redirigir
+    doLogin({ email, role, name: fullName });
+
+    goto(role === 'nutriologo' ? '/nutriologo' : role === 'paciente' ? '/paciente' : '/');
+  }
 </script>
+
 
 <main class="min-h-screen flex bg-gradient-to-b from-white to-amber-50">
   <!-- Sección izquierda: Imagen decorativa -->
