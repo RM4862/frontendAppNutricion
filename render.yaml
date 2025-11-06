@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: frontendAppNutricion
+    env: node
+    plan: free
+    branch: master
+    buildCommand: "npm run build"
+    startCommand: "npm run start"
+    envVars: []
