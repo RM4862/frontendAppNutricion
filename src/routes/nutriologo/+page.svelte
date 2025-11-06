@@ -36,18 +36,35 @@
     goto('/');
   }
 
-  function viewPatient(id: number) {
+  function openPatient(id: number) {
     goto(`/nutriologo/paciente/${id}`);
+  }
+
+  function openDieta(id: number) {
+    goto(`/nutriologo/paciente/${id}/dieta`);
+  }
+
+  function openCalendario(id: number) {
+    goto(`/nutriologo/paciente/${id}/calendario`);
   }
 </script>
 
 <main class="min-h-screen bg-gray-50 py-12">
   <div class="container mx-auto px-6">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-2xl font-bold text-emerald-700">Panel de Nutriólogo — Mis pacientes</h2>
+      <h2 class="text-2xl font-bold text-emerald-700">
+        Panel de Nutriólogo — Mis pacientes
+      </h2>
       <div class="flex items-center gap-4">
-        <div class="text-sm text-gray-600">{#if $user}{$user.name ?? $user.email}{/if}</div>
-        <button on:click={doLogout} class="px-3 py-1 bg-red-50 text-red-700 rounded">Cerrar sesión</button>
+        <div class="text-sm text-gray-600">
+          {#if $user}{$user.name ?? $user.email}{/if}
+        </div>
+        <button
+          on:click={doLogout}
+          class="px-3 py-1 bg-red-50 text-red-700 rounded hover:bg-red-100"
+        >
+          Cerrar sesión
+        </button>
       </div>
     </div>
 
@@ -59,16 +76,37 @@
       {:else}
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {#each patients as p}
-            <article class="p-4 bg-white rounded shadow">
-              <h3 class="font-semibold text-emerald-700">{p.name}</h3>
-              <p class="text-sm text-gray-600">Edad: {p.age}</p>
-              <p class="text-sm text-gray-600">Última visita: {p.lastVisit}</p>
-              <button
-                on:click={() => viewPatient(p.id)}
-                class="mt-3 w-full bg-emerald-600 text-white py-1 rounded hover:bg-emerald-700 transition"
-              >
-                Ver estadísticas
-              </button>
+            <article class="p-5 bg-white rounded-xl shadow flex flex-col justify-between">
+              <div>
+                <h3 class="font-semibold text-emerald-700 text-lg">{p.name}</h3>
+                <p class="text-sm text-gray-600">Edad: {p.age}</p>
+                <p class="text-sm text-gray-600 mb-4">
+                  Última visita: {p.lastVisit}
+                </p>
+              </div>
+
+              <div class="flex flex-wrap gap-2 mt-auto">
+                <button
+                  on:click={() => openPatient(p.id)}
+                  class="flex-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 text-sm"
+                >
+                  Ver estadísticas
+                </button>
+
+                <button
+                  on:click={() => openDieta(p.id)}
+                  class="flex-1 px-3 py-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 text-sm"
+                >
+                  Dieta
+                </button>
+
+                <button
+                  on:click={() => openCalendario(p.id)}
+                  class="flex-1 px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm"
+                >
+                  Calendario
+                </button>
+              </div>
             </article>
           {/each}
         </div>
