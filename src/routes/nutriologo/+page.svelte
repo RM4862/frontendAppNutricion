@@ -16,7 +16,6 @@
       return;
     }
     if (!current || current.role !== 'nutriologo') {
-      // no autorizado para ver vista de nutriólogo
       goto('/');
       return;
     }
@@ -35,6 +34,10 @@
   function doLogout() {
     logout();
     goto('/');
+  }
+
+  function viewPatient(id: number) {
+    goto(`/nutriologo/paciente/${id}`);
   }
 </script>
 
@@ -60,6 +63,12 @@
               <h3 class="font-semibold text-emerald-700">{p.name}</h3>
               <p class="text-sm text-gray-600">Edad: {p.age}</p>
               <p class="text-sm text-gray-600">Última visita: {p.lastVisit}</p>
+              <button
+                on:click={() => viewPatient(p.id)}
+                class="mt-3 w-full bg-emerald-600 text-white py-1 rounded hover:bg-emerald-700 transition"
+              >
+                Ver estadísticas
+              </button>
             </article>
           {/each}
         </div>
