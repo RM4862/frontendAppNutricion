@@ -27,7 +27,6 @@
       { id: 2, name: 'Carlos Pérez', age: 46, lastVisit: '2025-09-15' },
       { id: 3, name: 'Ana López', age: 29, lastVisit: '2025-11-01' }
     ];
-
     loading = false;
   });
 
@@ -36,35 +35,30 @@
     goto('/');
   }
 
-  function openPatient(id: number) {
-    goto(`/nutriologo/paciente/${id}`);
+  function openDieta(p) {
+    goto(`/nutriologo/paciente/${p.id}/dieta?name=${encodeURIComponent(p.name)}`);
   }
 
-  function openDieta(id: number) {
-    goto(`/nutriologo/paciente/${id}/dieta`);
+  function openCalendario(p) {
+    goto(`/nutriologo/paciente/${p.id}/calendario?name=${encodeURIComponent(p.name)}`);
   }
 
-  function openCalendario(id: number) {
-    goto(`/nutriologo/paciente/${id}/calendario`);
+  function openPerfil(p) {
+    goto(`/nutriologo/paciente/${p.id}/perfil?name=${encodeURIComponent(p.name)}`);
+  }
+
+  function openEstadisticas(p) {
+    goto(`/nutriologo/paciente/${p.id}/estadisticas?name=${encodeURIComponent(p.name)}`);
   }
 </script>
 
 <main class="min-h-screen bg-gray-50 py-12">
   <div class="container mx-auto px-6">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-2xl font-bold text-emerald-700">
-        Panel de Nutriólogo — Mis pacientes
-      </h2>
+      <h2 class="text-2xl font-bold text-emerald-700">Panel de Nutriólogo — Mis pacientes</h2>
       <div class="flex items-center gap-4">
-        <div class="text-sm text-gray-600">
-          {#if $user}{$user.name ?? $user.email}{/if}
-        </div>
-        <button
-          on:click={doLogout}
-          class="px-3 py-1 bg-red-50 text-red-700 rounded hover:bg-red-100"
-        >
-          Cerrar sesión
-        </button>
+        <div class="text-sm text-gray-600">{#if $user}{$user.name ?? $user.email}{/if}</div>
+        <button on:click={doLogout} class="px-3 py-1 bg-red-50 text-red-700 rounded">Cerrar sesión</button>
       </div>
     </div>
 
@@ -76,35 +70,36 @@
       {:else}
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {#each patients as p}
-            <article class="p-5 bg-white rounded-xl shadow flex flex-col justify-between">
+            <article class="p-4 bg-white rounded shadow flex flex-col justify-between">
               <div>
-                <h3 class="font-semibold text-emerald-700 text-lg">{p.name}</h3>
+                <h3 class="font-semibold text-emerald-700">{p.name}</h3>
                 <p class="text-sm text-gray-600">Edad: {p.age}</p>
-                <p class="text-sm text-gray-600 mb-4">
-                  Última visita: {p.lastVisit}
-                </p>
+                <p class="text-sm text-gray-600">Última visita: {p.lastVisit}</p>
               </div>
-
-              <div class="flex flex-wrap gap-2 mt-auto">
+              <div class="mt-4 grid grid-cols-2 gap-2">
                 <button
-                  on:click={() => openPatient(p.id)}
-                  class="flex-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 text-sm"
-                >
-                  Ver estadísticas
-                </button>
-
-                <button
-                  on:click={() => openDieta(p.id)}
-                  class="flex-1 px-3 py-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 text-sm"
+                  on:click={() => openDieta(p)}
+                  class="px-3 py-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 text-sm"
                 >
                   Dieta
                 </button>
-
                 <button
-                  on:click={() => openCalendario(p.id)}
-                  class="flex-1 px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm"
+                  on:click={() => openCalendario(p)}
+                  class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm"
                 >
                   Calendario
+                </button>
+                <button
+                  on:click={() => openPerfil(p)}
+                  class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 text-sm"
+                >
+                  Perfil
+                </button>
+                <button
+                  on:click={() => openEstadisticas(p)}
+                  class="px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 text-sm"
+                >
+                  Estadísticas
                 </button>
               </div>
             </article>
