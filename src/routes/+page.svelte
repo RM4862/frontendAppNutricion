@@ -13,10 +13,6 @@
 			<h1 class="text-4xl md:text-5xl font-extrabold text-emerald-700">Come mejor. Vive mejor.</h1>
 			<p class="mt-4 text-lg text-gray-700">Planifica comidas, descubre recetas balanceadas y sigue tu progreso nutricional de forma simple y práctica.</p>
 
-			<div class="mt-8 flex justify-center gap-4">
-				<a href="/registro" class="inline-flex items-center px-6 py-3 bg-emerald-600 text-white rounded-lg shadow hover:bg-emerald-700">Comenzar</a>
-				<a href="#features" class="inline-flex items-center px-6 py-3 border border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50">Ver características</a>
-			</div>
 		</section>
 
 		<section id="features" class="mt-16 grid gap-8 md:grid-cols-3">

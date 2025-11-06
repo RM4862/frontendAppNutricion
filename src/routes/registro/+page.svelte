@@ -131,9 +131,11 @@
       {/if}
 
     <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+
       <div>
-        <label class="block text-sm font-medium text-gray-700">Correo</label>
+        <label for="email" class="block text-sm font-medium text-gray-700">Correo</label>
         <input
+          id="email"
           bind:this={emailInput}
           type="email"
           bind:value={email}
@@ -144,8 +146,9 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700">Contraseña</label>
+        <label for="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
         <input
+          id="password"
           type="password"
           bind:value={password}
           placeholder="••••••••"
@@ -155,11 +158,11 @@
       </div>
 
       <div class="flex items-center justify-between">
-        <label class="flex items-center text-sm gap-2 text-gray-600">
-          <input type="checkbox" class="rounded text-emerald-600" />
+        <label for="remember" class="flex items-center text-sm gap-2 text-gray-600">
+          <input id="remember" type="checkbox" class="rounded text-emerald-600" />
           <span>Recordarme</span>
         </label>
-        <a href="#" class="text-sm text-emerald-600 hover:underline">Olvidé mi contraseña</a>
+        <button type="button" class="text-sm text-emerald-600 hover:underline bg-transparent border-none p-0 m-0">Olvidé mi contraseña</button>
       </div>
 
       <div>

@@ -17,8 +17,12 @@ export const load = async ({ session }) => {
   // Sample patients data (replace with API call later)
   type Patient = { id: number; name: string; age: number; lastVisit: string };
 
+
+  import { page } from '$app/stores';
   let patients: Patient[] = [];
+  let filteredPatients: Patient[] = [];
   let loading = true;
+
 
   onMount(async () => {
     const authed = get(isAuthenticated);
@@ -41,8 +45,24 @@ export const load = async ({ session }) => {
       { id: 3, name: 'Ana López', age: 29, lastVisit: '2025-11-01' }
     ];
 
+    filterPatients();
     loading = false;
   });
+
+  $: filterPatients();
+
+  function filterPatients() {
+    const search = $page.url.searchParams.get('search')?.trim().toLowerCase();
+    if (!search) {
+      filteredPatients = patients;
+      return;
+    }
+    // Coincidencia por palabra completa o exacta
+    filteredPatients = patients.filter(p =>
+      p.name.toLowerCase().split(/\s+/).some(word => word === search) ||
+      p.name.toLowerCase() === search
+    );
+  }
 
   function doLogout() {
     logout();
@@ -63,15 +83,33 @@ export const load = async ({ session }) => {
     {#if loading}
       <p>Cargando pacientes…</p>
     {:else}
-      {#if patients.length === 0}
-        <p class="text-gray-600">No tienes pacientes aún.</p>
+      {#if filteredPatients.length === 0}
+        <p class="text-gray-600">No se encontraron pacientes con ese nombre.</p>
       {:else}
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {#each patients as p}
-            <article class="p-4 bg-white rounded shadow">
+          {#each filteredPatients as p}
+            <article class="p-4 bg-white rounded shadow flex flex-col gap-2">
               <h3 class="font-semibold text-emerald-700">{p.name}</h3>
               <p class="text-sm text-gray-600">Edad: {p.age}</p>
               <p class="text-sm text-gray-600">Última visita: {p.lastVisit}</p>
+              <div class="flex flex-wrap gap-2 mt-2">
+                <a href={`/nutriologo/paciente/${p.id}/dieta?name=${encodeURIComponent(p.name)}`}
+                  class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 text-sm">
+                  Dieta
+                </a>
+                <a href={`/nutriologo/paciente/${p.id}/calendario?name=${encodeURIComponent(p.name)}`}
+                  class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm">
+                  Calendario
+                </a>
+                <a href={`/nutriologo/paciente/${p.id}/perfil?name=${encodeURIComponent(p.name)}`}
+                  class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 text-sm">
+                  Perfil
+                </a>
+                <a href={`/nutriologo/paciente/${p.id}/estadisticas?name=${encodeURIComponent(p.name)}`}
+                  class="px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 text-sm">
+                  Estadísticas
+                </a>
+              </div>
             </article>
           {/each}
         </div>

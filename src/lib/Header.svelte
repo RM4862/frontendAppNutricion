@@ -71,7 +71,10 @@
       <span class="text-emerald-600">|</span>
 
       <!-- Botón Agregar pacientes -->
-      <button class="px-3 py-1 bg-emerald-500 text-white rounded-md hover:bg-emerald-700">
+      <button 
+        class="px-3 py-1 bg-emerald-500 text-white rounded-md hover:bg-emerald-700"
+        on:click={() => goto('/nutriologo/paciente/agregar')}
+      >
         Agregar pacientes
       </button>
     </div>

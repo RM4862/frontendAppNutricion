@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  
 
   type Meal = { id: number; name: string; description: string; calories: number };
 
