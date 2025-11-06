@@ -1,15 +1,27 @@
 <script lang="ts">
-	import '../app.css';
-	import Header from '$lib/Header.svelte';
-	import Footer from '$lib/Footer.svelte';
+  import '../app.css';
+  import Header from '$lib/Header.svelte';
+  import Footer from '$lib/Footer.svelte';
+  import { page } from '$app/stores';
+  import { derived } from 'svelte/store';
 
-	let { children } = $props();
+  let { children } = $props();
+
+  const hideRoutes = ['/registro', '/registro/crear', '/login'];
+
+  const showHeaderFooter = derived(page, ($page) => {
+    return !hideRoutes.some((path) => $page.url.pathname.startsWith(path));
+  });
 </script>
 
-<Header />
+{#if $showHeaderFooter}
+  <Header />
+{/if}
 
 <main>
-	{@render children()}
+  {@render children()}
 </main>
 
-<Footer />
+{#if $showHeaderFooter}
+  <Footer />
+{/if}

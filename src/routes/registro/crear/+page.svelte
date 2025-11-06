@@ -1,4 +1,5 @@
 <script lang="ts">
+  
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
   import { getRoleFromEmail } from '$lib/stores/auth';
@@ -82,15 +83,27 @@
   onMount(() => firstInput?.focus());
 </script>
 
-<main class="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-amber-50 py-12">
-  <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8">
-    <h1 class="text-2xl font-bold text-emerald-700 mb-2">Crear cuenta</h1>
-    <p class="text-sm text-gray-600 mb-6">Regístrate para comenzar a usar NutriApp. Usa <code class="text-xs">@nut.com</code> para cuentas de nutriólogo y <code class="text-xs">@pac.com</code> para pacientes.</p>
 
-    {#if error}
-      <div class="mb-4 p-3 bg-red-50 text-red-700 rounded">{error}</div>
-    {/if}
+<main class="min-h-screen flex bg-gradient-to-b from-white to-amber-50 relative">
+  <!-- Sección izquierda: Formulario de registro -->
+  <section class="w-full md:w-1/2 flex flex-col items-center justify-center p-8 relative">
+    
+    <!-- Encabezado con logo y nombre arriba a la izquierda -->
+    <div class="absolute top-6 left-6 flex items-center">
+      <img src="/src/images/Logo_App.png" alt="Logo NutriApp" class="w-16 h-22 mr-3" />
+      <h2 class="text-2xl font-bold text-emerald-700">NutriApp</h2>
+    </div>
 
+    <!-- Card del formulario con margen superior para evitar superposición -->
+    <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8 mt-24">
+      <h1 class="text-2xl font-bold text-emerald-700 mb-2">Crear cuenta</h1>
+      <p class="text-sm text-gray-600 mb-6">
+        Regístrate para comenzar a usar NutriApp. Usa <code class="text-xs">@nut.com</code> para cuentas de nutriólogo y <code class="text-xs">@pac.com</code> para pacientes.
+      </p>
+
+      {#if error}
+        <div class="mb-4 p-3 bg-red-50 text-red-700 rounded">{error}</div>
+      {/if}
     <form on:submit|preventDefault={handleSubmit} class="space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
@@ -180,9 +193,45 @@
         </button>
       </div>
     </form>
-
     <p class="mt-6 text-center text-sm text-gray-600">¿Ya tienes cuenta? <a href="/registro" class="text-emerald-600 hover:underline">Inicia sesión</a></p>
   </div>
+ </section>
+
+  <!-- Sección derecha: Imagen decorativa con contenido centrado -->
+<section class="hidden md:flex w-1/2 items-center justify-center bg-cover bg-center relative p-8" style="background-image: url('/src/images/fondo\ registro.png');">
+  <div class="flex flex-col items-center justify-center w-full max-w-xl text-center text-gray-700">
+    
+    <!-- Título principal -->
+    <h3 class="text-3xl font-bold text-emerald-700 mb-8">Cómo funciona</h3>
+
+    <!-- Tarjetas alargadas con pasos -->
+    <div class="space-y-8 w-full px-4">
+      <div class="bg-white bg-opacity-100 rounded-lg shadow-md p-6 text-left">
+        <h4 class="text-lg font-semibold text-emerald-700 mb-2">Paso 1</h4>
+        <p>Regístrate y define tus objetivos.</p>
+      </div>
+
+      <div class="bg-white bg-opacity-90 rounded-lg shadow-md p-6 text-left">
+        <h4 class="text-lg font-semibold text-emerald-700 mb-2">Paso 2</h4>
+        <p>Elige o personaliza tu plan de comidas.</p>
+      </div>
+
+      <div class="bg-white bg-opacity-90 rounded-lg shadow-md p-6 text-left">
+        <h4 class="text-lg font-semibold text-emerald-700 mb-2">Paso 3</h4>
+        <p>Consulta recetas y registra tus comidas día a día.</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-12 text-sm text-gray-600">
+      <p>¿Tienes dudas? <a href="mailto:info@nutriapp.example" class="text-emerald-600 hover:underline">Contáctanos</a></p>
+      <p class="mt-2">© {new Date().getFullYear()} NutriApp</p>
+    </footer>
+  </div>
+</section>
+
+
+  
 </main>
 
 <style>

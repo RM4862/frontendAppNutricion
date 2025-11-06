@@ -68,14 +68,56 @@
   onMount(() => emailInput?.focus());
 </script>
 
-<main class="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-amber-50 py-12">
-  <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8">
-    <h1 class="text-2xl font-bold text-emerald-700 mb-2">Iniciar sesión</h1>
-    <p class="text-sm text-gray-600 mb-6">Ingresa tu correo y contraseña para continuar.</p>
+<main class="min-h-screen flex bg-gradient-to-b from-white to-amber-50">
+  <!-- Sección izquierda: Imagen decorativa -->
+  <!-- Sección izquierda: Imagen decorativa con contenido centrado -->
+<section class="hidden md:flex w-1/2 flex-col items-center justify-center bg-cover bg-center p-8 overflow-y-auto" style="background-image: url('/src/images/fondo\ registro.png');">
+  
+  <!-- Título principal -->
+  <section class="text-center max-w-3xl mx-auto">
+    <h1 class="text-4xl md:text-5xl font-extrabold text-emerald-700">Come mejor. Vive mejor.</h1>
+    <p class="mt-4 text-lg text-gray-700">
+      Planifica comidas, descubre recetas balanceadas y sigue tu progreso nutricional de forma simple y práctica.
+    </p>
+  </section>
 
-    {#if error}
-      <div class="mb-4 p-3 bg-red-50 text-red-700 rounded">{error}</div>
-    {/if}
+  <!-- Características destacadas -->
+  <section id="features" class="mt-16 grid gap-8 md:grid-cols-3 w-full max-w-4xl px-4">
+    <article class="p-6 bg-white bg-opacity-90 rounded-lg shadow text-center">
+      <h3 class="text-xl font-semibold text-emerald-700">Planes personalizados</h3>
+      <p class="mt-2 text-gray-600 text-sm">Crea planes de alimentación adaptados a tus metas y preferencias.</p>
+    </article>
+
+    <article class="p-6 bg-white bg-opacity-90 rounded-lg shadow text-center">
+      <h3 class="text-xl font-semibold text-emerald-700">Recetas saludables</h3>
+      <p class="mt-2 text-gray-600 text-sm">Busca recetas sencillas, con información nutricional y pasos claros.</p>
+    </article>
+
+    <article class="p-6 bg-white bg-opacity-90 rounded-lg shadow text-center">
+      <h3 class="text-xl font-semibold text-emerald-700">Seguimiento</h3>
+      <p class="mt-2 text-gray-600 text-sm">Registra comidas y observa tu progreso con gráficos y métricas.</p>
+    </article>
+  </section>
+</section>
+
+
+  <!-- Sección derecha: Formulario de inicio de sesión -->
+  <section class="w-full md:w-1/2 flex flex-col items-center justify-center p-8 relative">
+    
+    <!-- Encabezado con nombre y logo alineados a la derecha, más arriba -->
+    <div class="absolute top-6 right-6 flex items-center">
+      <h2 class="text-2xl font-bold text-emerald-700 mr-3">NutriApp</h2>
+      <img src="/src/images/Logo_App.png" alt="Logo NutriApp" class="w-16 h-22" />
+    </div>
+
+    <!-- Card del formulario -->
+    <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8 mt-20">
+      <h1 class="text-2xl font-bold text-emerald-700 mb-2">Iniciar sesión</h1>
+      <p class="text-sm text-gray-600 mb-6">Ingresa tu correo y contraseña para continuar.</p>
+
+      {#if error}
+        <div class="mb-4 p-3 bg-red-50 text-red-700 rounded">{error}</div>
+      {/if}
 
     <form on:submit|preventDefault={handleSubmit} class="space-y-4">
       <div>
@@ -123,8 +165,11 @@
       </div>
     </form>
 
-  <p class="mt-6 text-center text-sm text-gray-600">¿No tienes cuenta? <a href="/registro/crear" class="text-emerald-600 hover:underline">Regístrate</a></p>
-  </div>
+   <p class="mt-6 text-center text-sm text-gray-600">
+        ¿No tienes cuenta? <a href="/registro/crear" class="text-emerald-600 hover:underline">Regístrate</a>
+      </p>
+    </div>
+  </section>
 </main>
 
 <style>
