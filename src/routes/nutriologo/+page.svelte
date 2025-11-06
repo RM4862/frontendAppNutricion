@@ -16,7 +16,6 @@
       return;
     }
     if (!current || current.role !== 'nutriologo') {
-      // no autorizado para ver vista de nutriólogo
       goto('/');
       return;
     }
@@ -28,13 +27,28 @@
       { id: 2, name: 'Carlos Pérez', age: 46, lastVisit: '2025-09-15' },
       { id: 3, name: 'Ana López', age: 29, lastVisit: '2025-11-01' }
     ];
-
     loading = false;
   });
 
   function doLogout() {
     logout();
     goto('/');
+  }
+
+  function openDieta(p) {
+    goto(`/nutriologo/paciente/${p.id}/dieta?name=${encodeURIComponent(p.name)}`);
+  }
+
+  function openCalendario(p) {
+    goto(`/nutriologo/paciente/${p.id}/calendario?name=${encodeURIComponent(p.name)}`);
+  }
+
+  function openPerfil(p) {
+    goto(`/nutriologo/paciente/${p.id}/perfil?name=${encodeURIComponent(p.name)}`);
+  }
+
+  function openEstadisticas(p) {
+    goto(`/nutriologo/paciente/${p.id}/estadisticas?name=${encodeURIComponent(p.name)}`);
   }
 </script>
 
@@ -56,10 +70,38 @@
       {:else}
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {#each patients as p}
-            <article class="p-4 bg-white rounded shadow">
-              <h3 class="font-semibold text-emerald-700">{p.name}</h3>
-              <p class="text-sm text-gray-600">Edad: {p.age}</p>
-              <p class="text-sm text-gray-600">Última visita: {p.lastVisit}</p>
+            <article class="p-4 bg-white rounded shadow flex flex-col justify-between">
+              <div>
+                <h3 class="font-semibold text-emerald-700">{p.name}</h3>
+                <p class="text-sm text-gray-600">Edad: {p.age}</p>
+                <p class="text-sm text-gray-600">Última visita: {p.lastVisit}</p>
+              </div>
+              <div class="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  on:click={() => openDieta(p)}
+                  class="px-3 py-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 text-sm"
+                >
+                  Dieta
+                </button>
+                <button
+                  on:click={() => openCalendario(p)}
+                  class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm"
+                >
+                  Calendario
+                </button>
+                <button
+                  on:click={() => openPerfil(p)}
+                  class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 text-sm"
+                >
+                  Perfil
+                </button>
+                <button
+                  on:click={() => openEstadisticas(p)}
+                  class="px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 text-sm"
+                >
+                  Estadísticas
+                </button>
+              </div>
             </article>
           {/each}
         </div>
