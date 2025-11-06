@@ -2,7 +2,6 @@
   import { onMount, tick } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import Chart from 'chart.js/auto';
   import { redirect } from '@sveltejs/kit';
 
 export const load = async ({ session }) => {
@@ -17,8 +16,9 @@ export const load = async ({ session }) => {
   let patientId: number;
   let patient: any = null;
   let loading = true;
-  let weightChart: Chart;
-  let imcChart: Chart;
+  let weightChart: any;
+  let imcChart: any;
+  let ChartLib: any = null; // loaded dynamically on client
 
   onMount(async () => {
     patientId = Number($page.params.id);
@@ -69,6 +69,14 @@ export const load = async ({ session }) => {
 
     // Esperar a que el DOM se actualice antes de dibujar
     await tick();
+    // Cargar chart.js solo en cliente y luego dibujar
+    try {
+      const mod = await import('chart.js/auto');
+      ChartLib = (mod && (mod.default ?? mod)) as any;
+    } catch (e) {
+      console.error('No se pudo cargar chart.js:', e);
+      return;
+    }
     drawCharts();
   });
 
@@ -78,12 +86,13 @@ export const load = async ({ session }) => {
 
     if (!weightCtx || !imcCtx) return;
 
-    // Destruir gráficas previas si existían
-    if (weightChart) weightChart.destroy();
-    if (imcChart) imcChart.destroy();
+  // Destruir gráficas previas si existían
+  if (weightChart) weightChart.destroy();
+  if (imcChart) imcChart.destroy();
 
     // Peso
-    weightChart = new Chart(weightCtx, {
+  if (!ChartLib) return;
+  weightChart = new ChartLib(weightCtx, {
       type: 'line',
       data: {
         labels: patient.visits.map(v => v.date),
@@ -111,7 +120,7 @@ export const load = async ({ session }) => {
     });
 
     // IMC
-    imcChart = new Chart(imcCtx, {
+  imcChart = new ChartLib(imcCtx, {
       type: 'line',
       data: {
         labels: patient.visits.map(v => v.date),
