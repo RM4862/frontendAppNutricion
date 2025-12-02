@@ -2,55 +2,86 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  
-
-  type Meal = { id: number; name: string; description: string; calories: number };
 
   let patientId: string;
   let patientName = '';
-  let meals: Meal[] = [];
-  let newMeal: Omit<Meal, 'id'> = { name: '', description: '', calories: 0 };
-  let editingMeal: Meal | null = null;
+
+  let meals = [
+    { id: 1, name: 'Desayuno', items: [] },
+    { id: 2, name: 'Comida', items: [] },
+    { id: 3, name: 'Cena', items: [] }
+  ];
+
+  let openSection: number | null = null;
+
+  // Campos del formulario
+  let selectedGroup = "";
+  let selectedFood = "";
+  let quantity = "";
+  let unit = "";
+
+  // NUEVO CAMPO
+  let nuevaComida = "";
+
+  const alimentos = {
+    Cereales: ["Avena", "Arroz", "Tortilla", "Pan integral"],
+    Frutas: ["Manzana", "Banana", "Fresas", "Uvas"],
+    Verduras: ["Zanahoria", "Espinaca", "Brócoli", "Pepino"],
+    Lácteos: ["Leche", "Yogur", "Queso"],
+    Proteínas: ["Pollo", "Atún", "Huevo", "Carne magra"],
+    Grasas: ["Aguacate", "Nueces", "Aceite de oliva"]
+  };
+
+  const unidades = ["g", "ml", "pieza(s)", "taza(s)", "cucharada(s)"];
 
   onMount(() => {
-    // Obtener el ID del paciente desde la URL
     patientId = $page.params.id;
 
-    // Obtener el nombre desde la query (por ejemplo: ?name=María González)
     const query = new URLSearchParams($page.url.search);
     patientName = query.get('name') ?? `Paciente ${patientId}`;
-
-    // Simular obtener comidas del paciente
-    meals = [
-      { id: 1, name: 'Desayuno', description: 'Avena con fruta y leche', calories: 350 },
-      { id: 2, name: 'Comida', description: 'Pollo a la plancha con arroz y ensalada', calories: 600 },
-      { id: 3, name: 'Cena', description: 'Atún con tostadas y verduras', calories: 400 }
-    ];
   });
 
-  function addMeal() {
-    if (!newMeal.name || !newMeal.description) return;
-    const id = Math.max(0, ...meals.map(m => m.id)) + 1;
-    meals = [...meals, { id, ...newMeal }];
-    newMeal = { name: '', description: '', calories: 0 };
+  function toggleSection(id: number) {
+    openSection = openSection === id ? null : id;
   }
 
-  function deleteMeal(id: number) {
-    meals = meals.filter(m => m.id !== id);
+  // NUEVA FUNCIÓN PARA CREAR BOTÓN DE COMIDA
+  function agregarComida() {
+    if (!nuevaComida.trim()) {
+      alert("Ingrese un nombre válido.");
+      return;
+    }
+
+    const nuevoId = meals.length + 1;
+
+    meals = [
+      ...meals,
+      { id: nuevoId, name: nuevaComida, items: [] }
+    ];
+
+    nuevaComida = ""; // limpiar
   }
 
-  function startEdit(meal: Meal) {
-    editingMeal = { ...meal };
-  }
+  function agregarAlimento(mealId: number) {
+    if (!selectedGroup || !selectedFood || !quantity || !unit) {
+      alert("Por favor completa todos los campos.");
+      return;
+    }
 
-  function saveEdit() {
-    if (!editingMeal) return;
-    meals = meals.map(m => (m.id === editingMeal!.id ? editingMeal! : m));
-    editingMeal = null;
-  }
+    const meal = meals.find(m => m.id === mealId);
+    if (meal) {
+      meal.items.push({
+        group: selectedGroup,
+        food: selectedFood,
+        quantity,
+        unit
+      });
+    }
 
-  function cancelEdit() {
-    editingMeal = null;
+    selectedGroup = "";
+    selectedFood = "";
+    quantity = "";
+    unit = "";
   }
 
   function goBack() {
@@ -60,6 +91,8 @@
 
 <main class="min-h-screen bg-gray-50 py-10">
   <div class="container mx-auto px-6 max-w-3xl">
+
+    <!-- Encabezado -->
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-2xl font-bold text-emerald-700">
         Dieta de {patientName}
@@ -72,88 +105,133 @@
       </button>
     </div>
 
-    <div class="bg-white rounded-xl shadow p-6 mb-8">
-      <h3 class="text-lg font-semibold text-emerald-700 mb-4">Agregar comida</h3>
-      <div class="grid gap-3 md:grid-cols-3">
+    <!-- NUEVO FORMULARIO PARA AGREGAR COMIDA -->
+    <div class="bg-white p-4 rounded-xl shadow mb-6">
+      <h3 class="font-semibold text-emerald-700 mb-2">Agregar comida</h3>
+
+      <div class="flex gap-3">
         <input
-          class="border rounded p-2 text-sm"
-          placeholder="Nombre (ej. Desayuno)"
-          bind:value={newMeal.name}
+          class="flex-1 border rounded p-2 text-sm"
+          placeholder="Ej. Snack, Almuerzo 2, Refrigerio..."
+          bind:value={nuevaComida}
         />
-        <input
-          class="border rounded p-2 text-sm"
-          placeholder="Descripción"
-          bind:value={newMeal.description}
-        />
-        <input
-          type="number"
-          class="border rounded p-2 text-sm"
-          placeholder="Calorías"
-          bind:value={newMeal.calories}
-        />
+
+        <button
+          class="px-4 bg-emerald-600 text-white rounded hover:bg-emerald-700 text-sm"
+          on:click={agregarComida}
+        >
+          Agregar
+        </button>
       </div>
-      <button
-        on:click={addMeal}
-        class="mt-3 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
-      >
-        Agregar
-      </button>
     </div>
 
+    <!-- Secciones dinámicas -->
     <div class="space-y-4">
-      {#each meals as meal (meal.id)}
-        <div
-          class="bg-white p-5 rounded-xl shadow flex flex-col md:flex-row md:items-center justify-between gap-4"
-        >
-          {#if editingMeal && editingMeal.id === meal.id}
-            <div class="flex-1 grid gap-2 md:grid-cols-3">
-              <input
-                class="border rounded p-2 text-sm"
-                bind:value={editingMeal.name}
-              />
-              <input
-                class="border rounded p-2 text-sm"
-                bind:value={editingMeal.description}
-              />
-              <input
-                type="number"
-                class="border rounded p-2 text-sm"
-                bind:value={editingMeal.calories}
-              />
-            </div>
-            <div class="flex gap-2">
-              <button
-                on:click={saveEdit}
-                class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 text-sm"
-              >
-                Guardar
-              </button>
-              <button
-                on:click={cancelEdit}
-                class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm"
-              >
-                Cancelar
-              </button>
-            </div>
-          {:else}
-            <div>
-              <h4 class="font-semibold text-emerald-700">{meal.name}</h4>
-              <p class="text-sm text-gray-700">{meal.description}</p>
-              <p class="text-xs text-gray-500">Calorías: {meal.calories}</p>
-            </div>
-            <div class="flex gap-2">
-              <button
-                on:click={() => startEdit(meal)}
-                class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 text-sm"
-              >
-                Editar
-              </button>
-              <button
-                on:click={() => deleteMeal(meal.id)}
-                class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm"
-              >
-                Eliminar
-              </button>
+      {#each meals as meal}
+        <div class="bg-white rounded-xl shadow">
+
+          <!-- Botón principal -->
+          <button
+            class="w-full text-left p-4 font-semibold text-emerald-700 hover:bg-emerald-50 rounded-xl"
+            on:click={() => toggleSection(meal.id)}
+          >
+            {meal.name}
+          </button>
+
+          {#if openSection === meal.id}
+            <div class="p-4 border-t">
+
+              <!-- Formulario interno -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+
+                <div>
+                  <label class="text-xs font-semibold text-gray-600">Grupo</label>
+                  <select
+                    class="w-full mt-1 border rounded p-1.5 text-xs"
+                    bind:value={selectedGroup}
+                  >
+                    <option value="">Seleccione</option>
+                    {#each Object.keys(alimentos) as g}
+                      <option value={g}>{g}</option>
+                    {/each}
+                  </select>
+                </div>
+
+                <div>
+                  <label class="text-xs font-semibold text-gray-600">Alimento</label>
+                  <select
+                    class="w-full mt-1 border rounded p-1.5 text-xs"
+                    bind:value={selectedFood}
+                    disabled={!selectedGroup}
+                  >
+                    <option value="">Seleccione</option>
+                    {#if selectedGroup}
+                      {#each alimentos[selectedGroup] as food}
+                        <option value={food}>{food}</option>
+                      {/each}
+                    {/if}
+                  </select>
+                </div>
+
+                <div>
+                  <label class="text-xs font-semibold text-gray-600">Cantidad</label>
+                  <input
+                    class="w-full mt-1 border rounded p-1.5 text-xs"
+                    placeholder="Ej. 100"
+                    bind:value={quantity}
+                  />
+                </div>
+
+                <div>
+                  <label class="text-xs font-semibold text-gray-600">Unidad</label>
+                  <select
+                    class="w-full mt-1 border rounded p-1.5 text-xs"
+                    bind:value={unit}
+                  >
+                    <option value="">Seleccione</option>
+                    {#each unidades as u}
+                      <option value={u}>{u}</option>
+                    {/each}
+                  </select>
+                </div>
+
+                <div class="flex items-end md:col-span-1">
+                  <button
+                    class="w-full px-3 py-1.5 bg-emerald-600 text-white rounded text-xs hover:bg-emerald-700"
+                    on:click={() => agregarAlimento(meal.id)}
+                  >
+                    Agregar
+                  </button>
+                </div>
+              </div>
+
+              <!-- Tabla -->
+              {#if meal.items.length > 0}
+                <div class="mt-6 overflow-hidden rounded-xl shadow-sm border border-gray-200">
+                  <table class="w-full text-xs">
+                    <thead>
+                      <tr class="bg-emerald-600 text-white text-left">
+                        <th class="p-3">Nombre de Alimento</th>
+                        <th class="p-3">Cantidad</th>
+                        <th class="p-3">Unidad de medida</th>
+                        <th class="p-3">Grupo Alimenticio</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {#each meal.items as item}
+                        <tr class="bg-white border-t hover:bg-emerald-50 transition">
+                          <td class="p-3">{item.food}</td>
+                          <td class="p-3">{item.quantity}</td>
+                          <td class="p-3">{item.unit}</td>
+                          <td class="p-3">{item.group}</td>
+                        </tr>
+                      {/each}
+                    </tbody>
+                  </table>
+                </div>
+              {/if}
+
             </div>
           {/if}
         </div>
