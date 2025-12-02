@@ -8,6 +8,7 @@
   let middleName = '';
   let lastNameP = '';
   let lastNameM = '';
+  let cedulaProfesional = '';
   let email = '';
   let password = '';
   let confirmPassword = '';
@@ -43,6 +44,13 @@
     if (!lastNameM) { error = 'Por favor ingresa tu apellido materno.'; return; }
     if (!email) { error = 'Por favor ingresa tu correo.'; return; }
     if (!validateEmail(email)) { error = 'Formato de correo inválido.'; return; }
+    
+    // Validar cédula profesional solo para nutriólogos
+    const roleTemp = getRoleFromEmail(email);
+    if (roleTemp === 'nutriologo' && !cedulaProfesional) {
+      error = 'Los nutriólogos deben ingresar su cédula profesional.';
+      return;
+    }
     if (!password) { error = 'Por favor ingresa una contraseña.'; return; }
     if (password.length < 6) { error = 'La contraseña debe tener al menos 6 caracteres.'; return; }
     if (password !== confirmPassword) { error = 'Las contraseñas no coinciden.'; return; }
@@ -61,6 +69,7 @@
       middleName,
       lastNameP,
       lastNameM,
+      cedulaProfesional: role === 'nutriologo' ? cedulaProfesional : '',
       email,
       password,
       role
@@ -158,6 +167,17 @@
           placeholder="tu@correo.com"
           class="mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
         />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Cédula profesional {email.includes('@nut.com') ? '' : '(opcional)'}</label>
+        <input
+          type="text"
+          bind:value={cedulaProfesional}
+          placeholder="Número de cédula profesional"
+          class="mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
+        />
+        <p class="mt-1 text-xs text-gray-500">Obligatorio para nutriólogos (@nut.com)</p>
       </div>
 
       <div>
