@@ -55,58 +55,38 @@
     if (existing) { error = 'El correo ya está registrado.'; return; }
 
     loading = true;
-    
-    // TODO: Reemplazar con llamada real al backend
-    // const response = await fetch('/api/auth/register', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({
-    //     firstName,
-    //     middleName,
-    //     lastNameP,
-    //     lastNameM,
-    //     cedulaProfesional: role === 'nutriologo' ? cedulaProfesional : '',
-    //     email,
-    //     password,
-    //     role
-    //   })
-    // });
-    // 
-    // if (!response.ok) {
-    //   const data = await response.json();
-    //   error = data.message || 'Error al registrar usuario';
-    //   loading = false;
-    //   return;
-    // }
-    //
-    // loading = false;
-    // goto('/registro'); // Redirigir al login
 
-    // SIMULACIÓN TEMPORAL con localStorage (eliminar cuando se integre backend)
-    await new Promise((r) => setTimeout(r, 700));
-
-    const userObj = {
-      firstName,
-      middleName,
-      lastNameP,
-      lastNameM,
-      cedulaProfesional,
-      email,
+    // Llamada al backend para crear usuario
+    const payload = {
+      name: [firstName, middleName].filter(Boolean).join(' '),
+      first_name: firstName,
+      last_name: `${lastNameP} ${lastNameM}`.trim(),
+      mail: email,
       password,
-      role: 'nutriologo' // Solo se registran nutriólogos
+      role: 'nutriologo'
     };
 
     try {
-      saveUser(userObj);
-    } catch (e) {
-      error = 'Error al guardar el usuario.';
+      const response = await fetch('http://127.0.0.1:8000/auth/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        error = data.detail || data.message || 'Error al registrar usuario';
+        loading = false;
+        return;
+      }
+
+      loading = false;
+      goto('/registro'); // Redirigir al login
+    } catch (err) {
+      error = 'Error de conexión con el servidor.';
       loading = false;
       return;
     }
-
-    loading = false;
-    // Redirigir al login
-    goto('/registro');
   }
 
   let firstInput: HTMLInputElement | null = null;

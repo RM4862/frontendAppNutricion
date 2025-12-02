@@ -2,10 +2,11 @@ import { writable, derived } from 'svelte/store';
 
 type Role = 'nutriologo' | 'paciente' | 'unknown';
 
-type User = {
+export type User = {
   email: string;
   name?: string;
   role?: Role;
+  token?: string;
 };
 
 const STORAGE_KEY = 'nutriapp_user';

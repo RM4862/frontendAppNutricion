@@ -1,5 +1,18 @@
-import adapter from '@sveltejs/adapter-auto';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import { createRequire } from 'module';
+
+// Use createRequire to allow a graceful fallback in editors that can't
+// resolve `@sveltejs/adapter-auto` (avoids spurious "module not found"
+// errors while still using the adapter at runtime when installed).
+const require = createRequire(import.meta.url);
+let adapter;
+try {
+	// prefer the default adapter when available
+	adapter = require('@sveltejs/adapter-auto').default;
+} catch (err) {
+	// fallback noop adapter for editor/static analysis environments
+	adapter = () => ({ name: 'noop-adapter', adapt: () => {} });
+}
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {

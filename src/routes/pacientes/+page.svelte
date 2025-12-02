@@ -1,49 +1,60 @@
+<script context="module" lang="ts">
+  import { redirect } from '@sveltejs/kit';
+
+  // Si prefieres manejar la redirección en +page.ts/+.server.ts, mueve esto allí.
+  export const load = async ({ session }: { session: any }) => {
+    const s = session as any;
+    if (s?.user?.role === 'nutriologo') {
+      throw redirect(302, '/nutriologo');
+    } else {
+      throw redirect(302, '/paciente');
+    }
+  };
+</script>
+
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import { user, isAuthenticated, logout } from '$lib/stores/auth';
   import { get } from 'svelte/store';
-  import { redirect } from '@sveltejs/kit';
 
-export const load = async ({ session }) => {
-  if (session.user.role === 'nutriologo') {
-    throw redirect(302, '/nutriologo');
-  } else {
-    throw redirect(302, '/paciente');
-  }
-};
-
-
-  // Sample patients data (replace with API call later)
-  type Patient = { id: number; name: string; age: number; lastVisit: string };
-
-
-  import { page } from '$app/stores';
-  let patients: Patient[] = [];
-  let filteredPatients: Patient[] = [];
+  let patients: Array<any> = [];
+  let filteredPatients: Array<any> = [];
   let loading = true;
 
-
+  // Cargar pacientes al montar el componente
   onMount(async () => {
-    const authed = get(isAuthenticated);
-    const current = get(user);
-    if (!authed) {
-      goto('/registro');
-      return;
-    }
-    // Permitir solo a nutriólogos
-    if (!current || current.role !== 'nutriologo') {
+    // Si no está autenticado, volver al inicio
+    if (!get(isAuthenticated)) {
       goto('/');
       return;
     }
 
-    // Simular fetch de pacientes
-    await new Promise((r) => setTimeout(r, 400));
-    patients = [
+    loading = true;
+    await new Promise((r) => setTimeout(r, 200));
+
+    const sample = [
       { id: 1, name: 'María González', age: 34, lastVisit: '2025-10-20' },
       { id: 2, name: 'Carlos Pérez', age: 46, lastVisit: '2025-09-15' },
       { id: 3, name: 'Ana López', age: 29, lastVisit: '2025-11-01' }
     ];
+
+    try {
+      const stored = JSON.parse(localStorage.getItem('nutriapp_pacientes') || 'null');
+      if (Array.isArray(stored) && stored.length > 0) {
+        patients = stored.map((p: any) => ({
+          id: p.id,
+          name: [p.firstName, p.middleName, p.lastNameP, p.lastNameM].filter(Boolean).join(' '),
+          age: p.age ?? 0,
+          lastVisit: p.lastVisit ?? ''
+        }));
+      } else {
+        patients = sample;
+      }
+    } catch (e) {
+      patients = sample;
+    }
 
     filterPatients();
     loading = false;
@@ -57,11 +68,13 @@ export const load = async ({ session }) => {
       filteredPatients = patients;
       return;
     }
-    // Coincidencia por palabra completa o exacta
-    filteredPatients = patients.filter(p =>
-      p.name.toLowerCase().split(/\s+/).some(word => word === search) ||
-      p.name.toLowerCase() === search
-    );
+    filteredPatients = patients.filter((p) => {
+      const name = (p.name || '').toLowerCase();
+      return (
+        name.split(/\s+/).some((word: string) => word === search) ||
+        name === search
+      );
+    });
   }
 
   function doLogout() {

@@ -17,30 +17,48 @@
     notes: string;
   };
 
-  let patientId: string;
+  let patientId: string | undefined;
   let patient: Patient | null = null;
   let editing = false;
   let form: Partial<Patient> = {};
 
   onMount(() => {
     patientId = $page.params.id;
-    const query = new URLSearchParams($page.url.search);
-    const name = query.get('name') ?? 'Paciente ' + patientId;
-
-    // Simular obtención de información del paciente
-    patient = {
-      id: Number(patientId),
-      name,
-      age: 34,
-      gender: 'Femenino',
-      email: 'maria.gonzalez@example.com',
-      phone: '555-123-4567',
-      height: 165,
-      weight: 74,
-      goalWeight: 68,
-      lastVisit: '2025-10-20',
-      notes: 'Paciente con buena adherencia al plan alimenticio.'
-    };
+    // Intentar cargar paciente desde localStorage por id
+    const all: any[] = JSON.parse(localStorage.getItem('nutriapp_pacientes') || '[]');
+    const found = all.find((p: any) => String(p.id) === String(patientId));
+    if (found) {
+      patient = {
+        id: Number(found.id),
+        name: found.name || [found.firstName, found.middleName, found.lastNameP, found.lastNameM].filter(Boolean).join(' '),
+        age: found.age ?? 0,
+        gender: found.gender ?? '',
+        email: found.email ?? '',
+        phone: found.phone ?? '',
+        height: found.height ?? 0,
+        weight: found.weight ?? 0,
+        goalWeight: found.goalWeight ?? 0,
+        lastVisit: found.lastVisit ?? '',
+        notes: found.notes ?? ''
+      };
+    } else {
+      // Si no existe, usar parámetros como fallback
+      const query = new URLSearchParams($page.url.search);
+      const name = query.get('name') ?? 'Paciente ' + patientId;
+      patient = {
+        id: Number(patientId),
+        name,
+        age: 34,
+        gender: 'Femenino',
+        email: 'maria.gonzalez@example.com',
+        phone: '555-123-4567',
+        height: 165,
+        weight: 74,
+        goalWeight: 68,
+        lastVisit: '2025-10-20',
+        notes: 'Paciente con buena adherencia al plan alimenticio.'
+      };
+    }
   });
 
   function goBack() {
@@ -53,9 +71,67 @@
     editing = true;
   }
 
+  function deletePatient() {
+    if (!patient) return;
+    const ok = confirm(`¿Eliminar al paciente ${patient.name}? Esta acción no se puede deshacer.`);
+    if (!ok) return;
+    try {
+      const all: any[] = JSON.parse(localStorage.getItem('nutriapp_pacientes') || '[]');
+      const remaining = all.filter((p: any) => String(p.id) !== String(patient!.id));
+      localStorage.setItem('nutriapp_pacientes', JSON.stringify(remaining));
+      // eliminar usuario asociado si existe
+      const users: any[] = JSON.parse(localStorage.getItem('nutriapp_users') || '[]');
+      const filteredUsers = users.filter((u: any) => u.email !== patient!.email);
+      localStorage.setItem('nutriapp_users', JSON.stringify(filteredUsers));
+    } catch (e) {
+      console.error('Error al eliminar paciente', e);
+    }
+    goto('/nutriologo');
+  }
+
   function saveChanges() {
     if (!patient) return;
-    patient = { ...patient, ...form };
+    // Actualizar en memoria
+    patient = { ...patient, ...form } as any;
+    // Persistir en localStorage
+    try {
+      const all: any[] = JSON.parse(localStorage.getItem('nutriapp_pacientes') || '[]');
+      const idx = all.findIndex((p: any) => String(p.id) === String(patient!.id));
+      const toSave = {
+        id: patient!.id,
+        // mantener estructura que usa la app
+        firstName: (patient!.name || '').split(' ')[0] || '',
+        middleName: undefined,
+        lastNameP: '',
+        lastNameM: '',
+        name: patient!.name,
+        age: patient!.age,
+        gender: patient!.gender,
+        email: patient!.email,
+        phone: patient!.phone,
+        height: patient!.height,
+        weight: patient!.weight,
+        goalWeight: patient!.goalWeight,
+        lastVisit: patient!.lastVisit,
+        notes: patient!.notes
+      };
+      if (idx >= 0) {
+        all[idx] = { ...all[idx], ...toSave };
+      } else {
+        all.push(toSave);
+      }
+      localStorage.setItem('nutriapp_pacientes', JSON.stringify(all));
+      // también actualizar usuarios si corresponde
+      const users: any[] = JSON.parse(localStorage.getItem('nutriapp_users') || '[]');
+      const uidx = users.findIndex((u: any) => u.email === patient!.email);
+      if (uidx >= 0) {
+        users[uidx] = { ...users[uidx], firstName: patient!.name };
+        localStorage.setItem('nutriapp_users', JSON.stringify(users));
+      }
+    } catch (e) {
+      console.error('Error guardando paciente', e);
+    }
+
     editing = false;
   }
 
@@ -113,6 +189,12 @@
             >
               Editar información
             </button>
+            <button
+              on:click={deletePatient}
+              class="px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200"
+            >
+              Eliminar paciente
+            </button>
           {/if}
         </div>
       </div>
@@ -126,7 +208,12 @@
           <div class="grid gap-4 md:grid-cols-2">
             <input class="border rounded p-2 text-sm" bind:value={form.name} placeholder="Nombre" />
             <input class="border rounded p-2 text-sm" type="number" bind:value={form.age} placeholder="Edad" />
-            <input class="border rounded p-2 text-sm" bind:value={form.gender} placeholder="Género" />
+            <select class="border rounded p-2 text-sm" bind:value={form.gender}>
+              <option value="">Seleccionar</option>
+              <option value="Femenino">Femenino</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Otro">Otro</option>
+            </select>
             <input class="border rounded p-2 text-sm" bind:value={form.email} placeholder="Email" />
             <input class="border rounded p-2 text-sm" bind:value={form.phone} placeholder="Teléfono" />
             <input class="border rounded p-2 text-sm" type="number" bind:value={form.height} placeholder="Altura (cm)" />

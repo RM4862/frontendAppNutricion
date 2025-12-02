@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { user, isAuthenticated, logout } from '$lib/stores/auth';
+  // Local user shape to avoid type import conflicts in Svelte files
+  type AuthUser = { email?: string; name?: string; role?: string; token?: string };
   import { get } from 'svelte/store';
 
   type Patient = { id: number; name: string; age: number; lastVisit: string };
@@ -10,7 +12,7 @@
 
   onMount(async () => {
     const authed = get(isAuthenticated);
-    const current = get(user);
+    const current = get(user) as AuthUser | null;
     if (!authed) {
       goto('/registro');
       return;
@@ -20,13 +22,31 @@
       return;
     }
 
-    // Simular fetch
-    await new Promise((r) => setTimeout(r, 400));
-    patients = [
-      { id: 1, name: 'María González', age: 34, lastVisit: '2025-10-20' },
-      { id: 2, name: 'Carlos Pérez', age: 46, lastVisit: '2025-09-15' },
-      { id: 3, name: 'Ana López', age: 29, lastVisit: '2025-11-01' }
-    ];
+    // Intentar cargar pacientes desde localStorage (creados por el nutriólogo)
+    await new Promise((r) => setTimeout(r, 200));
+    try {
+      const stored = JSON.parse(localStorage.getItem('nutriapp_pacientes') || 'null');
+      if (Array.isArray(stored) && stored.length > 0) {
+        patients = stored.map((p: any) => ({
+          id: p.id,
+          name: [p.firstName, p.middleName, p.lastNameP, p.lastNameM].filter(Boolean).join(' '),
+          age: p.age ?? 0,
+          lastVisit: p.lastVisit ?? ''
+        }));
+      } else {
+        patients = [
+          { id: 1, name: 'María González', age: 34, lastVisit: '2025-10-20' },
+          { id: 2, name: 'Carlos Pérez', age: 46, lastVisit: '2025-09-15' },
+          { id: 3, name: 'Ana López', age: 29, lastVisit: '2025-11-01' }
+        ];
+      }
+    } catch (e) {
+      patients = [
+        { id: 1, name: 'María González', age: 34, lastVisit: '2025-10-20' },
+        { id: 2, name: 'Carlos Pérez', age: 46, lastVisit: '2025-09-15' },
+        { id: 3, name: 'Ana López', age: 29, lastVisit: '2025-11-01' }
+      ];
+    }
     loading = false;
   });
 
@@ -35,19 +55,19 @@
     goto('/');
   }
 
-  function openDieta(p) {
+  function openDieta(p: Patient) {
     goto(`/nutriologo/paciente/${p.id}/dieta?name=${encodeURIComponent(p.name)}`);
   }
 
-  function openCalendario(p) {
+  function openCalendario(p: Patient) {
     goto(`/nutriologo/paciente/${p.id}/calendario?name=${encodeURIComponent(p.name)}`);
   }
 
-  function openPerfil(p) {
+  function openPerfil(p: Patient) {
     goto(`/nutriologo/paciente/${p.id}/perfil?name=${encodeURIComponent(p.name)}`);
   }
 
-  function openEstadisticas(p) {
+  function openEstadisticas(p: Patient) {
     goto(`/nutriologo/paciente/${p.id}/estadisticas?name=${encodeURIComponent(p.name)}`);
   }
 </script>

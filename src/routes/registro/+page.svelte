@@ -38,64 +38,72 @@
     }
 
     loading = true;
+      // Llamada al backend para obtener token OAuth2
+      try {
+      const params = new URLSearchParams();
+      // Normalize username client-side to avoid whitespace/case issues
+      const usernameToSend = (email || '').trim().toLowerCase();
+      params.append('username', usernameToSend);
+      params.append('password', password || '');
+      console.debug('/auth/token params', params.toString());
 
-    // TODO: Reemplazar con llamada real al backend
-    // const response = await fetch('/api/auth/login', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ email, password })
-    // });
-    // 
-    // if (!response.ok) {
-    //   const data = await response.json();
-    //   error = data.message || 'Error al iniciar sesión';
-    //   loading = false;
-    //   return;
-    // }
-    // 
-    // const userData = await response.json();
-    // doLogin(userData); // userData debe incluir: { email, name, role }
-    // goto(userData.role === 'nutriologo' ? '/nutriologo' : '/paciente');
+        const tokenResp = await fetch('http://127.0.0.1:8000/auth/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
+        });
 
-    // SIMULACIÓN TEMPORAL con localStorage (eliminar cuando se integre backend)
-    try {
-      const users = JSON.parse(localStorage.getItem('nutriapp_users') || '[]');
-      const found = users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-      
-      if (!found) {
-        error = 'Usuario no registrado. Por favor regístrate primero.';
+        if (!tokenResp.ok) {
+          const status = tokenResp.status;
+          const bodyText = await tokenResp.text().catch(() => '');
+          console.warn('/auth/token failed', { status, bodyText });
+          // intentar parsear JSON si es posible
+          let data: any = {};
+          try { data = JSON.parse(bodyText); } catch(e: any) { data = {}; }
+          error = data?.detail || data?.error || `Credenciales incorrectas (${status})`;
+          loading = false;
+          return;
+        }
+
+        const tokenData = await tokenResp.json();
+        const token = tokenData.access_token;
+
+        // Obtener información del usuario usando el token
+        const meResp = await fetch('http://127.0.0.1:8000/auth/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!meResp.ok) {
+          error = 'No se pudo obtener la información del usuario.';
+          loading = false;
+          return;
+        }
+
+        const me = await meResp.json();
+
+        const fullName = me.name || [me.first_name || '', me.last_name || ''].filter(Boolean).join(' ').trim();
+
+        const userData = {
+          email,
+          name: fullName,
+          role: (me.role || '').toLowerCase(),
+          token
+        };
+
+        doLogin(userData);
         loading = false;
-        return;
+        goto(userData.role === 'nutriologo' ? '/nutriologo' : '/paciente');
+      } catch (err) {
+      // Detect network failures (fetch throws a TypeError on network error)
+      console.error('Login error', err);
+      if (err instanceof TypeError) {
+        error = 'No se pudo conectar al servidor backend. Asegúrate de que el backend esté ejecutándose en http://127.0.0.1:8000';
+      } else {
+        error = 'Error al iniciar sesión';
       }
-      if (found.password !== password) {
-        error = 'Contraseña incorrecta.';
+      loading = false;
         loading = false;
-        return;
       }
-
-      await new Promise((r) => setTimeout(r, 400));
-
-      const fullName = [
-        found.firstName,
-        found.middleName,
-        found.lastNameP,
-        found.lastNameM
-      ].filter(Boolean).join(' ').trim();
-
-      // El rol ahora viene del objeto guardado (que vendrá del backend)
-      const userData = { 
-        email, 
-        name: fullName, 
-        role: found.role // El backend debe retornar el rol
-      };
-      
-      doLogin(userData);
-      loading = false;
-      goto(userData.role === 'nutriologo' ? '/nutriologo' : '/paciente');
-    } catch (err) {
-      error = 'Error al iniciar sesión';
-      loading = false;
-    }
   }
 </script>
 
