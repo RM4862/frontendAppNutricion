@@ -8,7 +8,6 @@
   let error = '';
   let loading = false;
 
-  // Referencia al input para enfocar al montar
   let emailInput: HTMLInputElement | null = null;
 
   onMount(() => {
@@ -23,7 +22,6 @@
     ev.preventDefault();
     error = '';
 
-    // Validaciones básicas
     if (!email.trim()) {
       error = 'Por favor ingresa tu correo.';
       return;
@@ -38,75 +36,85 @@
     }
 
     loading = true;
-      // Llamada al backend para obtener token OAuth2
-      try {
+
+    try {
+      // ----------- LOGIN / TOKEN -----------
       const params = new URLSearchParams();
-      // Normalize username client-side to avoid whitespace/case issues
-      const usernameToSend = (email || '').trim().toLowerCase();
-      params.append('username', usernameToSend);
-      params.append('password', password || '');
-      console.debug('/auth/token params', params.toString());
+      params.append('username', email.trim().toLowerCase());
+      params.append('password', password);
 
-        const tokenResp = await fetch('http://127.0.0.1:8000/auth/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: params.toString()
-        });
+      const tokenResp = await fetch('http://127.0.0.1:8000/auth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+      });
 
-        if (!tokenResp.ok) {
-          const status = tokenResp.status;
-          const bodyText = await tokenResp.text().catch(() => '');
-          console.warn('/auth/token failed', { status, bodyText });
-          // intentar parsear JSON si es posible
-          let data: any = {};
-          try { data = JSON.parse(bodyText); } catch(e: any) { data = {}; }
-          error = data?.detail || data?.error || `Credenciales incorrectas (${status})`;
-          loading = false;
-          return;
-        }
-
-        const tokenData = await tokenResp.json();
-        const token = tokenData.access_token;
-
-        // Obtener información del usuario usando el token
-        const meResp = await fetch('http://127.0.0.1:8000/auth/me', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (!meResp.ok) {
-          error = 'No se pudo obtener la información del usuario.';
-          loading = false;
-          return;
-        }
-
-        const me = await meResp.json();
-
-        const fullName = me.name || [me.first_name || '', me.last_name || ''].filter(Boolean).join(' ').trim();
-
-        const userData = {
-          email,
-          name: fullName,
-          role: (me.role || '').toLowerCase(),
-          token
-        };
-
-        doLogin(userData);
+      if (!tokenResp.ok) {
+        const status = tokenResp.status;
+        const body = await tokenResp.text().catch(() => '');
+        let data = {};
+        try { data = JSON.parse(body); } catch {}
+        error = (data as any)?.detail || `Credenciales incorrectas (${status})`;
         loading = false;
-        goto(userData.role === 'nutriologo' ? '/nutriologo' : '/paciente');
-      } catch (err) {
-      // Detect network failures (fetch throws a TypeError on network error)
-      console.error('Login error', err);
+        return;
+      }
+
+      const tokenData = await tokenResp.json();
+      console.log(tokenData);
+      const token = tokenData.access_token;
+
+      // ----------- GET USER INFO (/me) -----------
+      const meResp = await fetch('http://127.0.0.1:8000/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!meResp.ok) {
+        error = 'No se pudo obtener la información del usuario.';
+        loading = false;
+        return;
+      }
+
+      const me = await meResp.json();
+      console.log(me);
+      const info = me.data; // Tu endpoint devuelve { data: {...} }
+
+      const fullName =
+        info.name ||
+        [info.first_name || '', info.last_name || '']
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+
+      // ----------- OBJETO QUE SE GUARDA EN EL STORE -----------
+      const userData = {
+        email: info.mail,
+        name: fullName,
+        first_name: info.first_name,
+        last_name: info.last_name,
+        role: info.role,       // NUTRIOLOGO | PACIENTE
+        token: token           // token OAuth2
+      };
+
+      doLogin(userData);
+      
+      loading = false;
+
+      // ----------- REDIRECCIÓN -----------
+      console.log('Validando roles: ',info.role === 'NUTRIOLOGO');
+      goto(info.role === 'NUTRIOLOGO' ? '/nutriologo' : '/paciente');
+
+    } catch (err) {
+      console.error('Login error:', err);
       if (err instanceof TypeError) {
-        error = 'No se pudo conectar al servidor backend. Asegúrate de que el backend esté ejecutándose en http://127.0.0.1:8000';
+        error =
+          'No se pudo conectar al servidor backend. Verifica que esté ejecutándose en http://127.0.0.1:8000';
       } else {
         error = 'Error al iniciar sesión';
       }
       loading = false;
-        loading = false;
-      }
+    }
   }
 </script>
-
 
 <main class="min-h-screen flex bg-gradient-to-b from-white to-amber-50">
   <!-- Sección izquierda: Imagen decorativa -->

@@ -1,5 +1,4 @@
 <script lang="ts">
-  
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
 
@@ -14,56 +13,31 @@
   let error = '';
   let loading = false;
 
-  const role = 'nutriologo'; // Solo se registran nutriólogos aquí
-
-  const USERS_KEY = 'nutriapp_users';
-
   function validateEmail(e: string) {
     return /\S+@\S+\.\S+/.test(e);
-  }
-
-  function readUsers() {
-    try {
-      return JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function saveUser(u: any) {
-    const all = readUsers();
-    all.push(u);
-    localStorage.setItem(USERS_KEY, JSON.stringify(all));
   }
 
   async function handleSubmit(ev: Event) {
     ev.preventDefault();
     error = '';
 
-    if (!firstName) { error = 'Por favor ingresa tu primer nombre.'; return; }
-    if (!lastNameP) { error = 'Por favor ingresa tu apellido paterno.'; return; }
-    if (!lastNameM) { error = 'Por favor ingresa tu apellido materno.'; return; }
-    if (!cedulaProfesional) { error = 'Por favor ingresa tu cédula profesional.'; return; }
-    if (!email) { error = 'Por favor ingresa tu correo.'; return; }
-    if (!validateEmail(email)) { error = 'Formato de correo inválido.'; return; }
-    if (!password) { error = 'Por favor ingresa una contraseña.'; return; }
-    if (password.length < 6) { error = 'La contraseña debe tener al menos 6 caracteres.'; return; }
-    if (password !== confirmPassword) { error = 'Las contraseñas no coinciden.'; return; }
-
-    // Evitar registros duplicados
-    const existing = readUsers().find((x: any) => x.email.toLowerCase() === email.toLowerCase());
-    if (existing) { error = 'El correo ya está registrado.'; return; }
+    if (!firstName) return error = 'Por favor ingresa tu primer nombre.';
+    if (!lastNameP) return error = 'Por favor ingresa tu apellido paterno.';
+    if (!lastNameM) return error = 'Por favor ingresa tu apellido materno.';
+    if (!cedulaProfesional) return error = 'Por favor ingresa tu cédula profesional.';
+    if (!validateEmail(email)) return error = 'Formato de correo inválido.';
+    if (password.length < 6) return error = 'La contraseña debe tener al menos 6 caracteres.';
+    if (password !== confirmPassword) return error = 'Las contraseñas no coinciden.';
 
     loading = true;
 
-    // Llamada al backend para crear usuario
     const payload = {
       name: [firstName, middleName].filter(Boolean).join(' '),
       first_name: firstName,
       last_name: `${lastNameP} ${lastNameM}`.trim(),
       mail: email,
       password,
-      role: 'nutriologo'
+      license: parseInt(cedulaProfesional)
     };
 
     try {
@@ -75,17 +49,15 @@
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        error = data.detail || data.message || 'Error al registrar usuario';
         loading = false;
-        return;
+        return error = data.detail || 'Error al registrar usuario';
       }
 
       loading = false;
-      goto('/registro'); // Redirigir al login
-    } catch (err) {
-      error = 'Error de conexión con el servidor.';
+      goto('/registro');
+    } catch {
       loading = false;
-      return;
+      error = 'Error de conexión con el servidor.';
     }
   }
 

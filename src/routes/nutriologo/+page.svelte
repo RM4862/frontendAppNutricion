@@ -1,60 +1,77 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { user, isAuthenticated, logout } from '$lib/stores/auth';
-  // Local user shape to avoid type import conflicts in Svelte files
-  type AuthUser = { email?: string; name?: string; role?: string; token?: string };
+  import { user, isAuthenticated, userRole, logout } from '$lib/stores/auth';
   import { get } from 'svelte/store';
 
-  type Patient = { id: number; name: string; age: number; lastVisit: string };
-  let patients: Patient[] = [];
+  // ------------------------
+  // Tipado paciente
+  // ------------------------
+  type Patient = {
+    id: number;
+    name: string;
+    age: number;
+    lastVisit: string;
+  };
+
+  let list_patients: Patient[] = [];
   let loading = true;
 
-  onMount(async () => {
-    const authed = get(isAuthenticated);
-    const current = get(user) as AuthUser | null;
-    if (!authed) {
-      goto('/registro');
-      return;
-    }
-    if (!current || current.role !== 'nutriologo') {
-      goto('/');
-      return;
-    }
-
-    // Intentar cargar pacientes desde localStorage (creados por el nutriólogo)
-    await new Promise((r) => setTimeout(r, 200));
-    try {
-      const stored = JSON.parse(localStorage.getItem('nutriapp_pacientes') || 'null');
-      if (Array.isArray(stored) && stored.length > 0) {
-        patients = stored.map((p: any) => ({
-          id: p.id,
-          name: [p.firstName, p.middleName, p.lastNameP, p.lastNameM].filter(Boolean).join(' '),
-          age: p.age ?? 0,
-          lastVisit: p.lastVisit ?? ''
-        }));
-      } else {
-        patients = [
-          { id: 1, name: 'María González', age: 34, lastVisit: '2025-10-20' },
-          { id: 2, name: 'Carlos Pérez', age: 46, lastVisit: '2025-09-15' },
-          { id: 3, name: 'Ana López', age: 29, lastVisit: '2025-11-01' }
-        ];
-      }
-    } catch (e) {
-      patients = [
-        { id: 1, name: 'María González', age: 34, lastVisit: '2025-10-20' },
-        { id: 2, name: 'Carlos Pérez', age: 46, lastVisit: '2025-09-15' },
-        { id: 3, name: 'Ana López', age: 29, lastVisit: '2025-11-01' }
-      ];
-    }
-    loading = false;
-  });
-
-  function doLogout() {
-    logout();
-    goto('/');
+  // ------------------------
+  // Validación de acceso y carga de pacientes
+  // ------------------------
+onMount(async () => {
+  if (!get(isAuthenticated)) {
+    goto('/registro');
+    return;
   }
 
+  if (get(userRole) !== 'NUTRIOLOGO') {
+    goto('/');
+    return;
+  }
+
+  const currentUser = get(user);
+  console.log('User: ', currentUser);
+
+  try {
+    const res = await fetch('http://127.0.0.1:8000/patients/nutriologist', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${currentUser.token}` }
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+    list_patients = data.data.map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      age: p.age,
+      lastVisit: p.last_visit
+    }));
+
+    console.log('Pacientes: ', list_patients);
+  } catch (e) {
+    console.error('Error fetching patients: ', e);
+  }
+
+  loading = false;
+});
+
+
+  // ------------------------
+  // Logout
+  // ------------------------
+  import { tick } from 'svelte';
+  async function doLogout() {
+    logout();
+    await tick();
+    goto('/');
+  }
+  
+  // ------------------------
+  // Funciones de navegación
+  // ------------------------
   function openDieta(p: Patient) {
     goto(`/nutriologo/paciente/${p.id}/dieta?name=${encodeURIComponent(p.name)}`);
   }
@@ -72,6 +89,7 @@
   }
 </script>
 
+
 <main class="min-h-screen bg-gray-50 py-12">
   <div class="container mx-auto px-6">
     <div class="flex items-center justify-between mb-6">
@@ -85,11 +103,11 @@
     {#if loading}
       <p>Cargando pacientes…</p>
     {:else}
-      {#if patients.length === 0}
+      {#if list_patients.length === 0}
         <p class="text-gray-600">No tienes pacientes aún.</p>
       {:else}
         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {#each patients as p}
+          {#each list_patients as p}
             <article class="p-4 bg-white rounded shadow flex flex-col justify-between">
               <div>
                 <h3 class="font-semibold text-emerald-700">{p.name}</h3>
