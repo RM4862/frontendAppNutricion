@@ -20,35 +20,21 @@ function readStoredUser(): User | null {
   }
 }
 
-function getRoleFromEmail(email?: string): Role {
-  if (!email) return 'unknown';
-  const lower = email.toLowerCase();
-  if (lower.endsWith('@nut.com')) return 'nutriologo';
-  if (lower.endsWith('@pac.com')) return 'paciente';
-  return 'unknown';
-}
-
 const initial = typeof window !== 'undefined' ? readStoredUser() : null;
-if (initial && !initial.role) {
-  initial.role = getRoleFromEmail(initial.email);
-}
 
 export const user = writable<User | null>(initial);
 
 export const isAuthenticated = derived(user, ($u) => !!$u);
 
 export function login(u: User) {
-  // Ensure role is present
-  const withRole: User = { ...u, role: u.role ?? getRoleFromEmail(u.email) };
-  user.set(withRole);
+  // El rol debe venir del backend en el objeto User
+  user.set(u);
   try {
-    if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, JSON.stringify(withRole));
+    if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
   } catch (e) {
     // ignore storage errors
   }
 }
-
-export { getRoleFromEmail };
 
 export function logout() {
   user.set(null);

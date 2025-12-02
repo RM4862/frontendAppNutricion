@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { login as doLogin, getRoleFromEmail } from '$lib/stores/auth';
+  import { login as doLogin } from '$lib/stores/auth';
 
   let email = '';
   let password = '';
@@ -37,44 +37,65 @@
       return;
     }
 
-    // Obtener usuarios desde localStorage
-    let users: Array<any> = [];
-    try {
-      users = JSON.parse(localStorage.getItem('nutriapp_users') || '[]');
-    } catch {
-      error = 'Error al leer usuarios registrados.';
-      return;
-    }
-
-    // Buscar usuario
-    const found = users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
-    if (!found) {
-      error = 'Usuario no registrado. Por favor regístrate primero.';
-      return;
-    }
-    if (found.password !== password) {
-      error = 'Contraseña incorrecta.';
-      return;
-    }
-
-    // Simular carga
     loading = true;
-    await new Promise((r) => setTimeout(r, 400));
-    loading = false;
 
-    // Obtener rol y nombre completo
-    const role = getRoleFromEmail(email);
-    const fullName = [
-      found.firstName,
-      found.middleName,
-      found.lastNameP,
-      found.lastNameM
-    ].filter(Boolean).join(' ').trim();
+    // TODO: Reemplazar con llamada real al backend
+    // const response = await fetch('/api/auth/login', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ email, password })
+    // });
+    // 
+    // if (!response.ok) {
+    //   const data = await response.json();
+    //   error = data.message || 'Error al iniciar sesión';
+    //   loading = false;
+    //   return;
+    // }
+    // 
+    // const userData = await response.json();
+    // doLogin(userData); // userData debe incluir: { email, name, role }
+    // goto(userData.role === 'nutriologo' ? '/nutriologo' : '/paciente');
 
-    // Guardar sesión y redirigir
-    doLogin({ email, role, name: fullName });
+    // SIMULACIÓN TEMPORAL con localStorage (eliminar cuando se integre backend)
+    try {
+      const users = JSON.parse(localStorage.getItem('nutriapp_users') || '[]');
+      const found = users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+      
+      if (!found) {
+        error = 'Usuario no registrado. Por favor regístrate primero.';
+        loading = false;
+        return;
+      }
+      if (found.password !== password) {
+        error = 'Contraseña incorrecta.';
+        loading = false;
+        return;
+      }
 
-    goto(role === 'nutriologo' ? '/nutriologo' : role === 'paciente' ? '/paciente' : '/');
+      await new Promise((r) => setTimeout(r, 400));
+
+      const fullName = [
+        found.firstName,
+        found.middleName,
+        found.lastNameP,
+        found.lastNameM
+      ].filter(Boolean).join(' ').trim();
+
+      // El rol ahora viene del objeto guardado (que vendrá del backend)
+      const userData = { 
+        email, 
+        name: fullName, 
+        role: found.role // El backend debe retornar el rol
+      };
+      
+      doLogin(userData);
+      loading = false;
+      goto(userData.role === 'nutriologo' ? '/nutriologo' : '/paciente');
+    } catch (err) {
+      error = 'Error al iniciar sesión';
+      loading = false;
+    }
   }
 </script>
 

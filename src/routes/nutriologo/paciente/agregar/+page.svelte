@@ -66,8 +66,13 @@
       return;
     }
 
-    // Guardar paciente en localStorage
-    const pacientes: Patient[] = JSON.parse(localStorage.getItem('nutriapp_pacientes') || '[]');
+    // Verificar que el correo no esté ya registrado
+    const existingUsers = JSON.parse(localStorage.getItem('nutriapp_users') || '[]');
+    if (existingUsers.find((u: any) => u.email.toLowerCase() === email.trim().toLowerCase())) {
+      error = 'Este correo ya está registrado.';
+      return;
+    }
+
     const id = Date.now();
     const newPatient: Patient = {
       id,
@@ -80,8 +85,24 @@
       createdAt: new Date().toISOString()
     };
 
+    // Guardar en la lista de pacientes
+    const pacientes: Patient[] = JSON.parse(localStorage.getItem('nutriapp_pacientes') || '[]');
     pacientes.push(newPatient);
     localStorage.setItem('nutriapp_pacientes', JSON.stringify(pacientes));
+
+    // También guardar en el sistema de usuarios para que pueda iniciar sesión
+    const userObj = {
+      firstName: newPatient.firstName,
+      middleName: newPatient.middleName,
+      lastNameP: newPatient.lastNameP,
+      lastNameM: newPatient.lastNameM,
+      cedulaProfesional: '',
+      email: newPatient.email,
+      password: newPatient.password,
+      role: 'paciente'
+    };
+    existingUsers.push(userObj);
+    localStorage.setItem('nutriapp_users', JSON.stringify(existingUsers));
 
     message = 'Paciente registrado correctamente.';
     // Limpiar formulario

@@ -2,7 +2,6 @@
   
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { getRoleFromEmail } from '$lib/stores/auth';
 
   let firstName = '';
   let middleName = '';
@@ -14,6 +13,8 @@
   let confirmPassword = '';
   let error = '';
   let loading = false;
+
+  const role = 'nutriologo'; // Solo se registran nutriólogos aquí
 
   const USERS_KEY = 'nutriapp_users';
 
@@ -42,15 +43,9 @@
     if (!firstName) { error = 'Por favor ingresa tu primer nombre.'; return; }
     if (!lastNameP) { error = 'Por favor ingresa tu apellido paterno.'; return; }
     if (!lastNameM) { error = 'Por favor ingresa tu apellido materno.'; return; }
+    if (!cedulaProfesional) { error = 'Por favor ingresa tu cédula profesional.'; return; }
     if (!email) { error = 'Por favor ingresa tu correo.'; return; }
     if (!validateEmail(email)) { error = 'Formato de correo inválido.'; return; }
-    
-    // Validar cédula profesional solo para nutriólogos
-    const roleTemp = getRoleFromEmail(email);
-    if (roleTemp === 'nutriologo' && !cedulaProfesional) {
-      error = 'Los nutriólogos deben ingresar su cédula profesional.';
-      return;
-    }
     if (!password) { error = 'Por favor ingresa una contraseña.'; return; }
     if (password.length < 6) { error = 'La contraseña debe tener al menos 6 caracteres.'; return; }
     if (password !== confirmPassword) { error = 'Las contraseñas no coinciden.'; return; }
@@ -60,19 +55,45 @@
     if (existing) { error = 'El correo ya está registrado.'; return; }
 
     loading = true;
-    // Simular llamada a API
+    
+    // TODO: Reemplazar con llamada real al backend
+    // const response = await fetch('/api/auth/register', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({
+    //     firstName,
+    //     middleName,
+    //     lastNameP,
+    //     lastNameM,
+    //     cedulaProfesional: role === 'nutriologo' ? cedulaProfesional : '',
+    //     email,
+    //     password,
+    //     role
+    //   })
+    // });
+    // 
+    // if (!response.ok) {
+    //   const data = await response.json();
+    //   error = data.message || 'Error al registrar usuario';
+    //   loading = false;
+    //   return;
+    // }
+    //
+    // loading = false;
+    // goto('/registro'); // Redirigir al login
+
+    // SIMULACIÓN TEMPORAL con localStorage (eliminar cuando se integre backend)
     await new Promise((r) => setTimeout(r, 700));
 
-    const role = getRoleFromEmail(email);
     const userObj = {
       firstName,
       middleName,
       lastNameP,
       lastNameM,
-      cedulaProfesional: role === 'nutriologo' ? cedulaProfesional : '',
+      cedulaProfesional,
       email,
       password,
-      role
+      role: 'nutriologo' // Solo se registran nutriólogos
     };
 
     try {
@@ -105,9 +126,9 @@
 
     <!-- Card del formulario con margen superior para evitar superposición -->
     <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8 mt-24">
-      <h1 class="text-2xl font-bold text-emerald-700 mb-2">Crear cuenta</h1>
+      <h1 class="text-2xl font-bold text-emerald-700 mb-2">Crear cuenta de nutriólogo</h1>
       <p class="text-sm text-gray-600 mb-6">
-        Regístrate para comenzar a usar NutriApp. Usa <code class="text-xs">@nut.com</code> para cuentas de nutriólogo y <code class="text-xs">@pac.com</code> para pacientes.
+        Regístrate como nutriólogo para comenzar a usar NutriApp. Los pacientes deben ser registrados desde tu panel de control.
       </p>
 
       {#if error}
@@ -170,14 +191,14 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700">Cédula profesional {email.includes('@nut.com') ? '' : '(opcional)'}</label>
+        <label class="block text-sm font-medium text-gray-700">Cédula profesional</label>
         <input
           type="text"
           bind:value={cedulaProfesional}
           placeholder="Número de cédula profesional"
           class="mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
         />
-        <p class="mt-1 text-xs text-gray-500">Obligatorio para nutriólogos (@nut.com)</p>
+        <p class="mt-1 text-xs text-gray-500">Requerido para validar tu cuenta profesional</p>
       </div>
 
       <div>
