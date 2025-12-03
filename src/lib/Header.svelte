@@ -70,7 +70,7 @@
       <button class="px-3 py-1 rounded-md hover:bg-emerald-200">Mensajes</button>
 
       <!-- Botón Agregar pacientes (solo para nutriólogos) -->
-      {#if $user?.role === 'nutriologo'}
+      {#if $user?.role === 'NUTRIOLOGO'}
         <span class="text-emerald-600">|</span>
         <button 
           class="px-3 py-1 bg-emerald-500 text-white rounded-md hover:bg-emerald-700"

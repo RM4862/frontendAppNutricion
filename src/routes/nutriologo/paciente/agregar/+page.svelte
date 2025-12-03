@@ -1,16 +1,34 @@
+
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { login as storeLogin } from '$lib/stores/auth';
+  import { user, isAuthenticated, userRole, logout } from '$lib/stores/auth';
+  import { get } from 'svelte/store';
+
+  let currentUser: any;
+
+  onMount(() => {
+    if (!get(isAuthenticated)) {
+      goto('/registro');
+      return;
+    }
+
+    if (get(userRole) !== 'NUTRIOLOGO') {
+      goto('/');
+      return;
+    }
+
+    currentUser = get(user);
+    console.log('User:', currentUser);
+  });
 
   type Patient = {
-    id: number;
-    firstName: string;
     name?: string;
     middleName?: string;
     lastNameP: string;
     lastNameM: string;
-    age?: number;
-    gender?: string;
+    age: number;
+    gender: string;
     phone?: string;
     height?: number;
     weight?: number;
@@ -21,7 +39,7 @@
     password: string;
     createdAt: string;
   };
-
+  
   let firstName = '';
   let middleName = '';
   let lastNameP = '';
@@ -30,12 +48,12 @@
   let password = '';
   let confirmPassword = '';
 
-  let age: number | '' = '';
+  let age: number ;
   let gender = '';
   let phone = '';
-  let height: number | '' = '';
-  let weight: number | '' = '';
-  let goalWeight: number | '' = '';
+  let height: number ;
+  let weight: number ;
+  let goalWeight: number ;
   let lastVisit = '';
   let notes = '';
 
@@ -48,12 +66,12 @@
 
   function resetForm() {
     firstName = middleName = lastNameP = lastNameM = email = password = confirmPassword = '';
-    age = '';
+    age = 0;
     gender = '';
     phone = '';
-    height = '';
-    weight = '';
-    goalWeight = '';
+    height = 0;
+    weight = 0;
+    goalWeight = 0;
     lastVisit = '';
     notes = '';
     message = error = '';
@@ -93,138 +111,70 @@
       return;
     }
 
-    // Verificar que el correo no esté ya registrado
-    const existingUsers = JSON.parse(localStorage.getItem('nutriapp_users') || '[]');
-    if (existingUsers.find((u: any) => u.email.toLowerCase() === email.trim().toLowerCase())) {
-      error = 'Este correo ya está registrado.';
-      return;
-    }
-
-    const id = Date.now();
-    const newPatient: Patient = {
-      id,
-      firstName: firstName.trim(),
-      name: [firstName.trim(), middleName.trim(), lastNameP.trim(), lastNameM.trim()].filter(Boolean).join(' '),
-      middleName: middleName.trim() || undefined,
-      lastNameP: lastNameP.trim(),
-      lastNameM: lastNameM.trim(),
-      age: typeof age === 'number' ? age : undefined,
-      gender: gender || undefined,
-      phone: phone || undefined,
-      height: typeof height === 'number' ? height : undefined,
-      weight: typeof weight === 'number' ? weight : undefined,
-      goalWeight: typeof goalWeight === 'number' ? goalWeight : undefined,
-      lastVisit: lastVisit || undefined,
-      notes: notes || undefined,
-      email: email.trim().toLowerCase(),
+   const newPatient: Patient = {
+      name: [firstName, middleName].filter(Boolean).join(' '),
+      lastNameP,
+      lastNameM,
+      email,
+      gender,
       password,
+      age: age,
+      phone,
+      height: height,
+      weight,
+      goalWeight,
+      lastVisit,
       createdAt: new Date().toISOString()
     };
 
-    // Guardar en la lista de pacientes
-    const pacientes: Patient[] = JSON.parse(localStorage.getItem('nutriapp_pacientes') || '[]');
-    pacientes.push(newPatient);
-    localStorage.setItem('nutriapp_pacientes', JSON.stringify(pacientes));
+    const to_send = {
+      name:newPatient.name,
+      first_name: newPatient.lastNameP,
+      last_name: newPatient.lastNameM,
+      age: newPatient.age,
+      gender: newPatient.gender,
+      phone: newPatient.phone,
+      height: newPatient.height,
+      actual_weight: newPatient.weight,
+      goal_weight: newPatient.goalWeight,
+      last_visit: newPatient.lastVisit, 
+      mail: newPatient.email,
+      password: newPatient.password
 
-    // Prepare user object (don't persist to local users yet — wait for server confirmation or fallback)
-    const userObj = {
-      firstName: newPatient.firstName,
-      middleName: newPatient.middleName,
-      lastNameP: newPatient.lastNameP,
-      lastNameM: newPatient.lastNameM,
-      cedulaProfesional: '',
-      email: newPatient.email,
-      password: newPatient.password,
-      role: 'paciente'
-    };
-
-    // Intentar crear el usuario también en el backend para permitir login real
+    }
+    console.log('Para mandar:  ', to_send);
     try {
-      const payload = {
-        name: newPatient.name,
-        first_name: newPatient.firstName,
-        last_name: `${newPatient.lastNameP} ${newPatient.lastNameM}`.trim(),
-        mail: newPatient.email,
-        password: newPatient.password,
-        role: 'paciente'
-      };
-
-      const resp = await fetch('http://127.0.0.1:8000/auth/', {
+      const res = await fetch('http://127.0.0.1:8000/patients/nutriologist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${currentUser.token}`
+        },
+        body: JSON.stringify(to_send)
       });
 
-      if (!resp.ok) {
-        const body = await resp.text().catch(() => '');
-        console.warn('No se pudo crear usuario en backend', resp.status, body);
-        if (resp.status === 409) {
-          // Conflict: email already exists on server
-          error = 'El correo ya está registrado en el servidor. Usa otro correo o solicita restablecer la cuenta.';
-          // Do NOT add to local `nutriapp_users` because server already has this account
-          message = 'Paciente registrado localmente.';
-          // stop here (do not attempt auto-login)
-        } else {
-          // Other server error: fallback to local-only user
-          existingUsers.push(userObj);
-          localStorage.setItem('nutriapp_users', JSON.stringify(existingUsers));
-          message = 'Paciente registrado localmente. (No se pudo crear en servidor)';
-        }
-      } else {
-        // Si el backend creó el usuario, persistir en usuarios locales y intentar auto-login
-        existingUsers.push(userObj);
-        localStorage.setItem('nutriapp_users', JSON.stringify(existingUsers));
-        try {
-          const params = new URLSearchParams();
-          // Normalize username before sending
-          params.append('username', (newPatient.email || '').trim().toLowerCase());
-          params.append('password', newPatient.password || '');
-          console.debug('/auth/token params (auto-login)', params.toString());
+      const data = await res.json();
+      console.log('Response:', data);
 
-          const tokenResp = await fetch('http://127.0.0.1:8000/auth/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString()
-          });
-
-          if (tokenResp.ok) {
-            const tokenData = await tokenResp.json();
-            const token = tokenData.access_token;
-            // Obtener info del usuario
-            const meResp = await fetch('http://127.0.0.1:8000/auth/me', {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            if (meResp.ok) {
-              const me = await meResp.json();
-              const fullName = me.name || [me.first_name || '', me.last_name || ''].filter(Boolean).join(' ').trim();
-              storeLogin({ email: newPatient.email, name: fullName, role: (me.role||'').toLowerCase(), token });
-              message = 'Paciente registrado correctamente.';
-              // redirigir al perfil del paciente (ya autenticado)
-              setTimeout(() => goto(`/nutriologo/paciente/${id}/perfil?name=${encodeURIComponent(newPatient.name || '')}`), 600);
-              return;
-            }
-          }
-
-          // Si no obtuvimos token, mostrar mensaje pero seguir con redirección a perfil local
-          message = 'Paciente registrado correctamente (no se pudo iniciar sesión automáticamente).';
-        } catch (e) {
-          console.warn('Error durante auto-login', e);
-          message = 'Paciente registrado localmente. (Error al autenticarse automáticamente)';
-        }
+      if (!res.ok) {
+        error = data.detail || 'Error al crear paciente';
+        return;
       }
+
+      const id = data.user.id;  
+
+      message = 'Paciente registrado correctamente.';
+      resetForm();
+
+      setTimeout(() => {
+        goto(`/nutriologo/paciente/${id}/perfil?name=${encodeURIComponent(newPatient.name!)}`);
+      }, 600);
+
     } catch (e) {
-      console.warn('Error creando usuario en backend', e);
-      message = 'Paciente registrado localmente. (Error de conexión con servidor)';
+      console.error(e);
+      error = 'Error al conectar con el servidor.';
     }
 
-    message = 'Paciente registrado correctamente.';
-    // Limpiar formulario
-    resetForm();
-
-    // Redirigir al perfil del paciente recién creado (mostrar nombre en query)
-    setTimeout(() => {
-      goto(`/nutriologo/paciente/${id}/perfil?name=${encodeURIComponent(newPatient.name || '')}`);
-    }, 600);
   }
 </script>
 

@@ -16,6 +16,7 @@
 
   let list_patients: Patient[] = [];
   let loading = true;
+  let currentUser: any;
 
   // ------------------------
   // Validación de acceso y carga de pacientes
@@ -31,7 +32,7 @@ onMount(async () => {
     return;
   }
 
-  const currentUser = get(user);
+  currentUser = get(user);
   console.log('User: ', currentUser);
 
   try {
@@ -48,7 +49,7 @@ onMount(async () => {
       name: p.name,
       age: p.age,
       lastVisit: p.last_visit
-    }));
+    }));  
 
     console.log('Pacientes: ', list_patients);
   } catch (e) {
