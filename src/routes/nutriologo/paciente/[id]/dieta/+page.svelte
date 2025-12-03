@@ -6,21 +6,15 @@
   let patientId: string;
   let patientName = '';
 
+  // Cada comida tiene su propio formulario interno
   let meals = [
-    { id: 1, name: 'Desayuno', items: [] },
-    { id: 2, name: 'Comida', items: [] },
-    { id: 3, name: 'Cena', items: [] }
+    { id: 1, name: 'Desayuno', items: [], form: { group: "", food: "", quantity: "", unit: "" } },
+    { id: 2, name: 'Comida', items: [], form: { group: "", food: "", quantity: "", unit: "" } },
+    { id: 3, name: 'Cena', items: [], form: { group: "", food: "", quantity: "", unit: "" } }
   ];
 
   let openSection: number | null = null;
 
-  // Campos del formulario
-  let selectedGroup = "";
-  let selectedFood = "";
-  let quantity = "";
-  let unit = "";
-
-  // NUEVO CAMPO
   let nuevaComida = "";
 
   const alimentos = {
@@ -36,7 +30,6 @@
 
   onMount(() => {
     patientId = $page.params.id;
-
     const query = new URLSearchParams($page.url.search);
     patientName = query.get('name') ?? `Paciente ${patientId}`;
   });
@@ -45,7 +38,6 @@
     openSection = openSection === id ? null : id;
   }
 
-  // NUEVA FUNCIÓN PARA CREAR BOTÓN DE COMIDA
   function agregarComida() {
     if (!nuevaComida.trim()) {
       alert("Ingrese un nombre válido.");
@@ -56,32 +48,31 @@
 
     meals = [
       ...meals,
-      { id: nuevoId, name: nuevaComida, items: [] }
+      { id: nuevoId, name: nuevaComida, items: [], form: { group: "", food: "", quantity: "", unit: "" } }
     ];
 
-    nuevaComida = ""; // limpiar
+    nuevaComida = "";
   }
 
   function agregarAlimento(mealId: number) {
-    if (!selectedGroup || !selectedFood || !quantity || !unit) {
+    const meal = meals.find(m => m.id === mealId);
+    if (!meal) return;
+
+    const f = meal.form;
+
+    if (!f.group || !f.food || !f.quantity || !f.unit) {
       alert("Por favor completa todos los campos.");
       return;
     }
 
-    const meal = meals.find(m => m.id === mealId);
-    if (meal) {
-      meal.items.push({
-        group: selectedGroup,
-        food: selectedFood,
-        quantity,
-        unit
-      });
-    }
+    meal.items.push({
+      group: f.group,
+      food: f.food,
+      quantity: f.quantity,
+      unit: f.unit
+    });
 
-    selectedGroup = "";
-    selectedFood = "";
-    quantity = "";
-    unit = "";
+    meal.form = { group: "", food: "", quantity: "", unit: "" };
   }
 
   function goBack() {
@@ -148,7 +139,7 @@
                   <label class="text-xs font-semibold text-gray-600">Grupo</label>
                   <select
                     class="w-full mt-1 border rounded p-1.5 text-xs"
-                    bind:value={selectedGroup}
+                    bind:value={meal.form.group}
                   >
                     <option value="">Seleccione</option>
                     {#each Object.keys(alimentos) as g}
@@ -161,12 +152,12 @@
                   <label class="text-xs font-semibold text-gray-600">Alimento</label>
                   <select
                     class="w-full mt-1 border rounded p-1.5 text-xs"
-                    bind:value={selectedFood}
-                    disabled={!selectedGroup}
+                    bind:value={meal.form.food}
+                    disabled={!meal.form.group}
                   >
                     <option value="">Seleccione</option>
-                    {#if selectedGroup}
-                      {#each alimentos[selectedGroup] as food}
+                    {#if meal.form.group}
+                      {#each alimentos[meal.form.group] as food}
                         <option value={food}>{food}</option>
                       {/each}
                     {/if}
@@ -178,7 +169,7 @@
                   <input
                     class="w-full mt-1 border rounded p-1.5 text-xs"
                     placeholder="Ej. 100"
-                    bind:value={quantity}
+                    bind:value={meal.form.quantity}
                   />
                 </div>
 
@@ -186,7 +177,7 @@
                   <label class="text-xs font-semibold text-gray-600">Unidad</label>
                   <select
                     class="w-full mt-1 border rounded p-1.5 text-xs"
-                    bind:value={unit}
+                    bind:value={meal.form.unit}
                   >
                     <option value="">Seleccione</option>
                     {#each unidades as u}
@@ -204,38 +195,52 @@
                   </button>
                 </div>
               </div>
-
-              <!-- Tabla -->
-              {#if meal.items.length > 0}
-                <div class="mt-6 overflow-hidden rounded-xl shadow-sm border border-gray-200">
-                  <table class="w-full text-xs">
-                    <thead>
-                      <tr class="bg-emerald-600 text-white text-left">
-                        <th class="p-3">Nombre de Alimento</th>
-                        <th class="p-3">Cantidad</th>
-                        <th class="p-3">Unidad de medida</th>
-                        <th class="p-3">Grupo Alimenticio</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {#each meal.items as item}
-                        <tr class="bg-white border-t hover:bg-emerald-50 transition">
-                          <td class="p-3">{item.food}</td>
-                          <td class="p-3">{item.quantity}</td>
-                          <td class="p-3">{item.unit}</td>
-                          <td class="p-3">{item.group}</td>
-                        </tr>
-                      {/each}
-                    </tbody>
-                  </table>
-                </div>
-              {/if}
-
             </div>
           {/if}
+
         </div>
       {/each}
     </div>
+
+    <!-- TABLA FINAL (DEBAJO DE TODOS LOS BOTONES) -->
+    <h3 class="text-xl font-semibold text-emerald-700 mt-10 mb-3">Resumen de alimentos</h3>
+
+    <div class="space-y-8">
+      {#each meals as meal}
+        {#if meal.items.length > 0}
+          <div class="border rounded-xl overflow-hidden shadow-sm">
+
+            <h4 class="bg-emerald-600 text-white p-3 font-semibold text-sm">
+              {meal.name}
+            </h4>
+
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="bg-emerald-100 text-gray-700">
+                  <th class="p-3 text-center">Alimento</th>
+                  <th class="p-3 text-center">Cantidad</th>
+                  <th class="p-3 text-center">Unidad</th>
+                  <th class="p-3 text-center">Grupo</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {#each meal.items as item}
+                  <tr class="border-t hover:bg-gray-50">
+                    <td class="p-3 text-center">{item.food}</td>
+                    <td class="p-3 text-center">{item.quantity}</td>
+                    <td class="p-3 text-center">{item.unit}</td>
+                    <td class="p-3 text-center">{item.group}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+
+
+          </div>
+        {/if}
+      {/each}
+    </div>
+
   </div>
 </main>
