@@ -166,9 +166,8 @@
       message = 'Paciente registrado correctamente.';
       resetForm();
 
-      setTimeout(() => {
-        goto(`/nutriologo/paciente/${id}/perfil?name=${encodeURIComponent(newPatient.name!)}`);
-      }, 600);
+      goto(`/nutriologo/paciente/${id}/perfil?name=${encodeURIComponent(newPatient.name!)}`);
+
 
     } catch (e) {
       console.error(e);

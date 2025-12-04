@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  import { user, isAuthenticated, userRole, logout } from '$lib/stores/auth';
+  import { get } from 'svelte/store';
 
   type Patient = {
     id: number;
@@ -17,48 +19,56 @@
     notes: string;
   };
 
+  let currentUser: any;
+
   let patientId: string | undefined;
   let patient: Patient | null = null;
   let editing = false;
   let form: Partial<Patient> = {};
 
-  onMount(() => {
+  onMount(async() => {
     patientId = $page.params.id;
-    // Intentar cargar paciente desde localStorage por id
-    const all: any[] = JSON.parse(localStorage.getItem('nutriapp_pacientes') || '[]');
-    const found = all.find((p: any) => String(p.id) === String(patientId));
-    if (found) {
-      patient = {
-        id: Number(found.id),
-        name: found.name || [found.firstName, found.middleName, found.lastNameP, found.lastNameM].filter(Boolean).join(' '),
-        age: found.age ?? 0,
-        gender: found.gender ?? '',
-        email: found.email ?? '',
-        phone: found.phone ?? '',
-        height: found.height ?? 0,
-        weight: found.weight ?? 0,
-        goalWeight: found.goalWeight ?? 0,
-        lastVisit: found.lastVisit ?? '',
-        notes: found.notes ?? ''
-      };
-    } else {
-      // Si no existe, usar parámetros como fallback
-      const query = new URLSearchParams($page.url.search);
-      const name = query.get('name') ?? 'Paciente ' + patientId;
-      patient = {
-        id: Number(patientId),
-        name,
-        age: 34,
-        gender: 'Femenino',
-        email: 'maria.gonzalez@example.com',
-        phone: '555-123-4567',
-        height: 165,
-        weight: 74,
-        goalWeight: 68,
-        lastVisit: '2025-10-20',
-        notes: 'Paciente con buena adherencia al plan alimenticio.'
-      };
+    if (!get(isAuthenticated)) {
+      goto('/registro');
+      return;
     }
+
+    if (get(userRole) !== 'NUTRIOLOGO') {
+      goto('/');
+      return;
+    }
+
+    currentUser = get(user);
+    console.log('User:', currentUser);
+    try{
+      const req = await fetch(`http://127.0.0.1:8000/patient/nutriologist?patient_id=${patientId}`,{
+        method: 'GET',
+        headers:{
+          Authorization: `Bearer ${currentUser.token}`
+        }
+      });
+
+      const res =  await req.json();
+      const res_user = res.data;
+      console.log('User: ',res.data);
+      patient = {
+        id: Number(res_user.id),
+        name: res_user.name || [res_user.firstName, res_user.middleName, res_user.lastNameP, res_user.lastNameM].filter(Boolean).join(' '),
+        age: res_user.age ?? 0,
+        gender: res_user.gender ?? '',
+        email: res_user.mail ?? '',
+        phone: res_user.cellphone ?? '',
+        height: res_user.height ?? 0,
+        weight: res_user.actual_weight ?? 0,
+        goalWeight: res_user.goal_weight ?? 0,
+        lastVisit: res_user.last_visit ?? '',
+        notes: res_user.notes ?? ''
+      };
+
+    }catch(e){
+      console.log('Error: ', e);
+    }
+    
   });
 
   function goBack() {
