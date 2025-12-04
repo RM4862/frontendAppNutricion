@@ -91,6 +91,14 @@
         name: fullName,
         first_name: info.first_name,
         last_name: info.last_name,
+        id:info.id,
+        age:info.age,
+        height:info.height,
+        goal_weight: info.goal_weight, 
+        actual_weight: info.actual_weight,
+        gender: info.gender,
+        cellphone: info.cellphone,
+        last_visit:info.last_visit,
         role: info.role,       // NUTRIOLOGO | PACIENTE
         token: token           // token OAuth2
       };

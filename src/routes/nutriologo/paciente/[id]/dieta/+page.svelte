@@ -392,7 +392,7 @@
 
         </div>
       {/each}
-
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
       {#if meals}
         <div class="mb-6">
           <h3 class="font-bold text-3xl">Dieta actual</h3>
@@ -427,6 +427,7 @@
           {/each}
         </div>
       {/if}
+      </div>
 
     </div>
 

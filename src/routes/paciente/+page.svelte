@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { user, isAuthenticated, logout } from '$lib/stores/auth';
   import { onMount } from 'svelte';
+  import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
+  import { user, isAuthenticated, userRole, logout } from '$lib/stores/auth';
+  import { get } from 'svelte/store';
 
   type PatientFull = {
     id?: number;
@@ -22,7 +24,8 @@
     createdAt?: string;
   };
 
-  let fullProfile: PatientFull | null = null;
+  let currentUser: any;
+  let fullProfile: PatientFull;
 
   // Se asume que ya validaste sesión/rol antes o en un load server-side
   function nav(href: string) {
@@ -31,36 +34,21 @@
   function doLogout() { logout(); goto('/'); }
 
   onMount(() => {
-    const u = (typeof window !== 'undefined') ? JSON.parse(localStorage.getItem('nutriapp_user') || 'null') : null;
-    const email = u?.email;
-    if (!email) return;
-    try {
-      const all: any[] = JSON.parse(localStorage.getItem('nutriapp_pacientes') || '[]');
-      const found = all.find((p: any) => (p.email || '').toLowerCase() === (email || '').toLowerCase());
-      if (found) {
-        fullProfile = {
-          id: found.id,
-          firstName: found.firstName,
-          middleName: found.middleName,
-          lastNameP: found.lastNameP,
-          lastNameM: found.lastNameM,
-          name: found.name || [found.firstName, found.middleName, found.lastNameP, found.lastNameM].filter(Boolean).join(' '),
-          age: found.age,
-          gender: found.gender,
-          email: found.email,
-          phone: found.phone,
-          height: found.height,
-          weight: found.weight,
-          goalWeight: found.goalWeight,
-          lastVisit: found.lastVisit,
-          notes: found.notes,
-          createdAt: found.createdAt
-        };
-      }
-    } catch (e) {
-      console.warn('Error loading patient profile from localStorage', e);
+    currentUser = get(user);
+
+    // Validaciones
+    if (!get(isAuthenticated)) {
+      goto('/registro');
+      return;
     }
+
+    if (get(userRole) !== 'PACIENTE') {
+      goto('/');
+      return;
+    }
+    console.log(currentUser);
   });
+
 </script>
 
 <main class="min-h-screen bg-gray-50 py-12">
@@ -69,7 +57,7 @@
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
       <h2 class="text-3xl font-bold text-emerald-700">Mi cuenta</h2>
       <div class="flex items-center gap-3">
-        <div class="text-sm text-gray-600">{#if $user}{$user.name ?? $user.email}{/if}</div>
+        <div class="text-sm text-gray-600">{#if currentUser}{currentUser.name ?? currentUser.email}{/if}</div>
         <button on:click={doLogout} class="px-3 py-1 bg-red-50 text-red-700 rounded">
           Cerrar sesión
         </button>
@@ -104,23 +92,19 @@
 
     <!-- Tarjeta de perfil -->
     <section class="bg-white p-6 rounded-lg shadow max-w-3xl">
-      {#if fullProfile}
-        <p><span class="font-semibold">Nombre:</span> {fullProfile.name ?? (fullProfile.firstName ?? 'Sin nombre')}</p>
+      {#if currentUser}
+        <p><span class="font-semibold">Nombre:</span> {currentUser.name ?? (currentUser.last_name ?? 'Sin nombre')}</p>
         <div class="grid md:grid-cols-2 gap-2 mt-3">
-          <p><strong>Correo:</strong> {fullProfile.email}</p>
-          <p><strong>Teléfono:</strong> {fullProfile.phone ?? '—'}</p>
-          <p><strong>Edad:</strong> {fullProfile.age ?? '—'}</p>
-          <p><strong>Género:</strong> {fullProfile.gender ?? '—'}</p>
-          <p><strong>Altura:</strong> {fullProfile.height ? `${fullProfile.height} cm` : '—'}</p>
-          <p><strong>Peso:</strong> {fullProfile.weight ? `${fullProfile.weight} kg` : '—'}</p>
-          <p><strong>Peso meta:</strong> {fullProfile.goalWeight ? `${fullProfile.goalWeight} kg` : '—'}</p>
-          <p><strong>Última visita:</strong> {fullProfile.lastVisit ?? '—'}</p>
+          <p><strong>Correo:</strong> {currentUser.email}</p>
+          <p><strong>Teléfono:</strong> {currentUser.cellphone ?? '—'}</p>
+          <p><strong>Edad:</strong> {currentUser.age ?? '—'}</p>
+          <p><strong>Género:</strong> {currentUser.gender ?? '—'}</p>
+          <p><strong>Altura:</strong> {currentUser.height ? `${currentUser.height} cm` : '—'}</p>
+          <p><strong>Peso:</strong> {currentUser.actual_weight ? `${currentUser.actual_weight} kg` : '—'}</p>
+          <p><strong>Peso meta:</strong> {currentUser.goal_weight ? `${currentUser.goal_weight} kg` : '—'}</p>
+          <p><strong>Última visita:</strong> {currentUser.last_visit ?? '—'}</p>
         </div>
 
-        <section class="mt-4">
-          <h3 class="text-sm font-semibold text-emerald-700">Notas</h3>
-          <p class="text-gray-700 mt-1">{fullProfile.notes ?? 'Sin notas'}</p>
-        </section>
       {:else}
         {#if $user}
           <p><span class="font-semibold">Nombre:</span> {$user.name ?? 'Sin nombre'}</p>
