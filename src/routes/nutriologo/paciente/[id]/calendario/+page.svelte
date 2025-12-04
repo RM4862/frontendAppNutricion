@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  import { user, isAuthenticated, userRole, logout } from '$lib/stores/auth';
+  import { get } from 'svelte/store';
 
   type Appointment = {
     id: number;
@@ -11,8 +13,7 @@
     completed: boolean;
   };
 
-  let patientId = '';
-  let patientName = '';
+
   let appointments: Appointment[] = [];
   let newAppointment = { date: '', time: '', description: '' };
 
@@ -39,10 +40,98 @@
     ]
   };
 
-  onMount(() => {
-    patientId = $page.params.id ?? '';
+  
+  let patientId: string | undefined;
+  let currentUser: any;
+  let patientName = '';
+
+  type part = {
+    id?:  number;
+    date: string;
+    group_name: string;
+    description: string;
+    aliment: string;
+    amount:number;
+    unit: string;
+  };
+
+  type meal = {
+    id:number;
+    name: string;
+    description?:string;
+    parts: part[]; 
+  };
+
+  let meals: meal[] = [];
+
+  onMount(async () => {
+    patientId = $page.params.id;
+    currentUser = get(user);
+
     const query = new URLSearchParams($page.url.search);
-    patientName = query.get('name') ?? 'Paciente sin nombre';
+    patientName = query.get('name') ?? `Paciente ${patientId}`;
+
+    // Validaciones
+    if (!get(isAuthenticated)) {
+      goto('/registro');
+      return;
+    }
+
+    if (get(userRole) !== 'NUTRIOLOGO') {
+      goto('/');
+      return;
+    }
+
+    try {
+      const req = await fetch(`http://127.0.0.1:8000/food/nutriologist/${patientId}`, {
+        headers: { Authorization: `Bearer ${currentUser.token}` }
+      });
+
+      const res = await req.json();
+      const patient_event = res.data ?? [];
+      console.log(res, patientId);
+
+      for (const p of patient_event) {
+        try {
+          const req_part = await fetch(
+            `http://127.0.0.1:8000/food/menu/register?food_event_id=${p.id}`,
+            {
+              headers: { Authorization: `Bearer ${currentUser.token}` }
+            }
+          );
+
+          const res_part = await req_part.json();
+          const patient_part = res_part.data ?? [];
+          console.log(patient_part);
+
+          const current_part: part[] =
+            patient_part.length > 0
+              ? patient_part.map((pp) => ({
+                  id:  pp.id,
+                  date: pp.date,
+                  group_name: pp.group_name,
+                  description: pp.description,
+                  aliment: pp.aliment,
+                  amount:pp.amount,
+                  unit: pp.unit,
+          })): [];
+
+          meals = [
+            ...meals,
+            {
+              id: p.id,
+              name: p.food_name,
+              parts: current_part
+            }
+          ];
+        } catch (e) {
+          console.log('Error al fetch patient menu part: ', e);
+        }
+      }
+      console.log('meals: ',meals);
+    } catch (e) {
+      console.log('Error al fetch patient food: ', e);
+    }
 
     // Fecha actual por defecto
     const today = new Date().toISOString().split('T')[0];
@@ -107,103 +196,48 @@
     <!-- Formulario de Registro de Alimentos -->
     <div class="bg-white rounded shadow p-6 mb-6">
       <h3 class="text-xl font-semibold text-emerald-700 mb-4">Registro de Alimentos</h3>
-      
-      <!-- Selector de fecha -->
-      <div class="mb-4">
-        <label for="dateSelector" class="block text-sm font-medium text-gray-700 mb-2">Selecciona el día</label>
-        <input 
-          id="dateSelector"
-          type="date" 
-          bind:value={selectedDate}
-          on:change={handleDateChange}
-          class="border border-gray-300 rounded px-3 py-2 w-full md:w-auto focus:border-emerald-500 focus:ring-emerald-500"
-        />
-        {#if displayDate}
-          <p class="text-sm text-gray-600 mt-2">📅 {displayDate}</p>
-        {/if}
-      </div>
+      {#if meals}
+        <div class="mb-6">
+          {#each meals as meal}
+              <h4 class="font-semibold text-emerald-600 mb-3">{meal.name}</h4>
+              {#if meal.parts.length > 0}
+                <div class="space-y-2">
+                  {#each meal.parts as a}
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 p-3 bg-gray-50 rounded border border-gray-200">
+                      <div class="md:col-span-5">
+                        <span class="text-xs text-gray-600 block mb-1">Alimento</span>
+                        <span class="font-medium text-gray-800">{a.group_name}</span>
+                      </div>
 
-      <!-- Desayuno -->
-      <div class="mb-6">
-        <h4 class="font-semibold text-emerald-600 mb-3">🍳 Desayuno</h4>
-        {#if registroAlimentos.desayuno.length > 0}
-          <div class="space-y-2">
-            {#each registroAlimentos.desayuno as item}
-              <div class="grid grid-cols-1 md:grid-cols-12 gap-2 p-3 bg-gray-50 rounded border border-gray-200">
-                <div class="md:col-span-5">
-                  <span class="text-xs text-gray-600 block mb-1">Alimento</span>
-                  <span class="font-medium text-gray-800">{item.alimento}</span>
-                </div>
-                <div class="md:col-span-3">
-                  <span class="text-xs text-gray-600 block mb-1">Cantidad</span>
-                  <span class="font-medium text-gray-800">{item.cantidad}</span>
-                </div>
-                <div class="md:col-span-4">
-                  <span class="text-xs text-gray-600 block mb-1">Unidad</span>
-                  <span class="font-medium text-gray-800">{item.unidad}</span>
-                </div>
-              </div>
-            {/each}
-          </div>
-        {:else}
-          <p class="text-gray-500 text-sm italic">No hay alimentos registrados para el desayuno</p>
-        {/if}
-      </div>
+                      <div class="md:col-span-3">
+                        <span class="text-xs text-gray-600 block mb-1">Cantidad</span>
+                        <span class="font-medium text-gray-800">{a.amount}</span>
+                      </div>
 
-      <!-- Comida -->
-      <div class="mb-6">
-        <h4 class="font-semibold text-emerald-600 mb-3">🍽️ Comida</h4>
-        {#if registroAlimentos.comida.length > 0}
-          <div class="space-y-2">
-            {#each registroAlimentos.comida as item}
-              <div class="grid grid-cols-1 md:grid-cols-12 gap-2 p-3 bg-gray-50 rounded border border-gray-200">
-                <div class="md:col-span-5">
-                  <span class="text-xs text-gray-600 block mb-1">Alimento</span>
-                  <span class="font-medium text-gray-800">{item.alimento}</span>
-                </div>
-                <div class="md:col-span-3">
-                  <span class="text-xs text-gray-600 block mb-1">Cantidad</span>
-                  <span class="font-medium text-gray-800">{item.cantidad}</span>
-                </div>
-                <div class="md:col-span-4">
-                  <span class="text-xs text-gray-600 block mb-1">Unidad</span>
-                  <span class="font-medium text-gray-800">{item.unidad}</span>
-                </div>
-              </div>
-            {/each}
-          </div>
-        {:else}
-          <p class="text-gray-500 text-sm italic">No hay alimentos registrados para la comida</p>
-        {/if}
-      </div>
+                      <div class="md:col-span-4">
+                        <span class="text-xs text-gray-600 block mb-1">Unidad</span>
+                        <span class="font-medium text-gray-800">{a.unit}</span>
+                      </div>
 
-      <!-- Cena -->
-      <div class="mb-6">
-        <h4 class="font-semibold text-emerald-600 mb-3">🌙 Cena</h4>
-        {#if registroAlimentos.cena.length > 0}
-          <div class="space-y-2">
-            {#each registroAlimentos.cena as item}
-              <div class="grid grid-cols-1 md:grid-cols-12 gap-2 p-3 bg-gray-50 rounded border border-gray-200">
-                <div class="md:col-span-5">
-                  <span class="text-xs text-gray-600 block mb-1">Alimento</span>
-                  <span class="font-medium text-gray-800">{item.alimento}</span>
+                      <div class="md:col-span-4">
+                        <span class="text-xs text-gray-600 block mb-1">Unidad</span>
+                        <span class="font-medium text-gray-800">{a.date}</span>
+                      </div>
+                    </div>
+                  {/each}
                 </div>
-                <div class="md:col-span-3">
-                  <span class="text-xs text-gray-600 block mb-1">Cantidad</span>
-                  <span class="font-medium text-gray-800">{item.cantidad}</span>
-                </div>
-                <div class="md:col-span-4">
-                  <span class="text-xs text-gray-600 block mb-1">Unidad</span>
-                  <span class="font-medium text-gray-800">{item.unidad}</span>
-                </div>
-              </div>
-            {/each}
-          </div>
-        {:else}
-          <p class="text-gray-500 text-sm italic">No hay alimentos registrados para la cena</p>
-        {/if}
-      </div>
+              {:else}
+                <p class="text-gray-500 text-sm italic">
+                  No hay alimentos registrados para esta comida.
+                </p>
+              {/if}
+          {/each}
+        </div>
+      {/if}
     </div>
+
+      
+
 
     <!-- Formulario para agregar cita -->
     <div class="bg-white rounded shadow p-4 mb-6">
@@ -235,5 +269,5 @@
         </article>
       {/each}
     </div>
-  </div>
+
 </main>
